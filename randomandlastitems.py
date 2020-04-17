@@ -53,7 +53,7 @@ def _getPlaylistType ():
     _name = ""
     if _doc.getElementsByTagName('name'):
         try:
-            _name = _doc.getElementsByTagName('name')[0].firstChild.nodeValue.encode('utf-8')
+            _name = _doc.getElementsByTagName('name')[0].firstChild.nodeValue
         except:
             _name = ""
     _setProperty( "%s.Name" % PROPERTY, str( _name ) )
@@ -106,7 +106,6 @@ def _getMovies ( ):
     if PLAYLIST == "":
         PLAYLIST = "videodb://movies/titles/"
     _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "video", "properties": ["title", "originaltitle", "playcount", "year", "genre", "studio", "country", "tagline", "plot", "runtime", "file", "plotoutline", "lastplayed", "trailer", "rating", "resume", "art", "streamdetails", "mpaa", "director", "dateadded"]}, "id": 1}' %(PLAYLIST))
-    _json_query = unicode(_json_query, 'utf-8', errors='ignore')
     _json_pl_response = json.loads(_json_query)
     # If request return some results
     _files = _json_pl_response.get( "result", {} ).get( "files" )
@@ -116,7 +115,6 @@ def _getMovies ( ):
                 break
             if _item['filetype'] == 'directory':
                 _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "video", "properties": ["title", "originaltitle", "playcount", "year", "genre", "studio", "country", "tagline", "plot", "runtime", "file", "plotoutline", "lastplayed", "trailer", "rating", "resume", "art", "streamdetails", "mpaa", "director", "dateadded"]}, "id": 1}' %(_item['file']))
-                _json_query = unicode(_json_query, 'utf-8', errors='ignore')
                 _json_set_response = json.loads(_json_query)
                 _movies = _json_set_response.get( "result", {} ).get( "files" ) or []
                 if not _movies:
@@ -163,7 +161,6 @@ def _getMovies ( ):
                 break
             _count += 1
             _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMovieDetails", "params": {"properties": ["streamdetails"], "movieid":%s }, "id": 1}' %(_movie['id']))
-            _json_query = unicode(_json_query, 'utf-8', errors='ignore')
             _json_query = json.loads(_json_query)
             if _json_query.has_key('result') and _json_query['result'].has_key('moviedetails'):
                 item = _json_query['result']['moviedetails']
@@ -181,7 +178,7 @@ def _getMovies ( ):
             path = media_path(_movie['file'])
             play = 'XBMC.RunScript(' + __addonid__ + ',movieid=' + str(_movie.get('id')) + ')'
             art = _movie['art']
-            streaminfo = media_streamdetails(_movie['file'].encode('utf-8').lower(),
+            streaminfo = media_streamdetails(_movie['file'].lower(),
                                        _movie['streamdetails'])
             # Get runtime from streamdetails or from NFO
             if streaminfo['duration'] != 0:
@@ -250,7 +247,6 @@ def _getMusicVideosFromPlaylist ( ):
     _watched = 0
     # Request database using JSON
     _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "video", "properties": ["title", "playcount", "year", "genre", "studio", "album", "artist", "track", "plot", "tag", "runtime", "file", "lastplayed", "resume", "art", "streamdetails", "director", "dateadded"]}, "id": 1}' %(PLAYLIST))
-    _json_query = unicode(_json_query, 'utf-8', errors='ignore')
     _json_pl_response = json.loads(_json_query)
     # If request return some results
     _files = _json_pl_response.get( "result", {} ).get( "files" )
@@ -283,7 +279,6 @@ def _getMusicVideosFromPlaylist ( ):
                 break
             _count += 1
             _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMusicVideoDetails", "params": {"properties": ["streamdetails"], "musicvideoid":%s }, "id": 1}' %(_musicvid['id']))
-            _json_query = unicode(_json_query, 'utf-8', errors='ignore')
             _json_query = json.loads(_json_query)
             if _json_query['result'].has_key('musicvideodetails'):
                 item = _json_query['result']['musicvideodetails']
@@ -301,7 +296,7 @@ def _getMusicVideosFromPlaylist ( ):
             path = media_path(_musicvid['file'])
             play = 'XBMC.RunScript(' + __addonid__ + ',musicvideoid=' + str(_musicvid.get('id')) + ')'
             art = _musicvid['art']
-            streaminfo = media_streamdetails(_musicvid['file'].encode('utf-8').lower(),
+            streaminfo = media_streamdetails(_musicvid['file'].lower(),
                                              _musicvid['streamdetails'])
             # Get runtime from streamdetails or from NFO
             if streaminfo['duration'] != 0:
@@ -368,7 +363,6 @@ def _getEpisodesFromPlaylist ( ):
     _tvshowid = []
     # Request database using JSON
     _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "video", "properties": ["title", "playcount", "season", "episode", "showtitle", "plot", "file", "studio", "mpaa", "rating", "resume", "runtime", "tvshowid", "art", "streamdetails", "firstaired", "dateadded"] }, "id": 1}' %(PLAYLIST))
-    _json_query = unicode(_json_query, 'utf-8', errors='ignore')
     _json_pl_response = json.loads(_json_query)
     _files = _json_pl_response.get( "result", {} ).get( "files" )
     if _files:
@@ -379,7 +373,6 @@ def _getEpisodesFromPlaylist ( ):
                 _tvshows += 1
                 # Playlist return TV Shows - Need to get episodes
                 _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodes", "params": { "tvshowid": %s, "properties": ["title", "playcount", "season", "episode", "showtitle", "plot", "file", "rating", "resume", "runtime", "tvshowid", "art", "streamdetails", "firstaired", "dateadded"] }, "id": 1}' %(_file['id']))
-                _json_query = unicode(_json_query, 'utf-8', errors='ignore')
                 _json_response = json.loads(_json_query)
                 _episodes = _json_response.get( "result", {} ).get( "episodes" )
                 if _episodes:
@@ -450,7 +443,6 @@ def _getEpisodes ( ):
     _tvshowid = []
     # Request database using JSON
     _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodes", "params": { "properties": ["title", "playcount", "season", "episode", "showtitle", "plot", "file", "studio", "mpaa", "rating", "resume", "runtime", "tvshowid", "art", "streamdetails", "firstaired", "dateadded"]}, "id": 1}')
-    _json_query = unicode(_json_query, 'utf-8', errors='ignore')
     _json_pl_response = json.loads(_json_query)
     # If request return some results
     _episodes = _json_pl_response.get( "result", {} ).get( "episodes" )
@@ -514,7 +506,6 @@ def _getAlbumsFromPlaylist ( ):
         _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "music", "properties": ["dateadded"], "sort": {"order": "%s", "method": "%s"}}, "id": 1}' %(PLAYLIST, order, SORTBY))
     else:
         _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "music", "properties": ["dateadded"]}, "id": 1}' %(PLAYLIST))
-    _json_query = unicode(_json_query, 'utf-8', errors='ignore')
     _json_pl_response = json.loads(_json_query)
     # If request return some results
     _files = _json_pl_response.get( "result", {} ).get( "files" )
@@ -527,7 +518,6 @@ def _getAlbumsFromPlaylist ( ):
                 _albumid = _file['id']
                 # Album playlist so get path from songs
                 _json_query = xbmc.executeJSONRPC('{"id":1, "jsonrpc":"2.0", "method":"AudioLibrary.GetSongs", "params":{"filter":{"albumid": %s}, "properties":["artistid"]}}' %_albumid)
-                _json_query = unicode(_json_query, 'utf-8', errors='ignore')
                 _json_pl_response = json.loads(_json_query)
                 _result = _json_pl_response.get( "result", {} ).get( "songs" )
                 if _result:
@@ -563,7 +553,6 @@ def _getAlbumsFromPlaylist ( ):
             _count += 1
             _albumid = _album['id'];
             _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "AudioLibrary.GetAlbumDetails", "params":{"albumid": %s, "properties":["title", "description", "albumlabel", "theme", "mood", "style", "type", "artist", "genre", "year", "thumbnail", "fanart", "rating", "playcount"]}, "id": 1}' %_albumid )
-            _json_query = unicode(_json_query, 'utf-8', errors='ignore')
             _json_pl_response = json.loads(_json_query)
             # If request return some results
             _album = _json_pl_response.get( "result", {} ).get( "albumdetails" )
@@ -617,7 +606,6 @@ def _setTvShowsProperties ( _tvshows ):
 def _setEpisodeProperties ( _episode, _count ):
     if _episode:
         _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodeDetails", "params": {"properties": ["streamdetails"], "episodeid":%s }, "id": 1}' %(_episode['id']))
-        _json_query = unicode(_json_query, 'utf-8', errors='ignore')
         _json_query = json.loads(_json_query)
         if _json_query['result'].has_key('episodedetails'):
             item = _json_query['result']['episodedetails']
@@ -636,7 +624,7 @@ def _setEpisodeProperties ( _episode, _count ):
         path = media_path(_episode['file'])
         play = 'XBMC.RunScript(' + __addonid__ + ',episodeid=' + str(_episode.get('id')) + ')'
         runtime = str(int((_episode['runtime'] / 60) + 0.5))
-        streaminfo = media_streamdetails(_episode['file'].encode('utf-8').lower(),
+        streaminfo = media_streamdetails(_episode['file'].lower(),
                                          _episode['streamdetails'])
         _setProperty("%s.%d.DBID"                  % ( PROPERTY, _count ), str(_episode.get('id')))
         _setProperty("%s.%d.Title"                 % ( PROPERTY, _count ), _episode.get('title',''))
