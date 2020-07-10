@@ -20,7 +20,7 @@ Il peut optionnellement gerer les playlistes pour filtrer les resultats.
         <platform>all</platform>
         <license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
         <website></website>
-        <source>https://github.com/XBMC-Addons/script.randomandlastitems</source>
+        <source>https://github.com/scott967/script.randomandlastitems</source>
         <forum>http://forum.xbmc.org/showthread.php?tid=122448</forum>
         <email></email>
     </extension>

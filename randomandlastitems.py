@@ -20,6 +20,7 @@ START_TIME = time.time()
 TYPE = ''
 UNWATCHED = 'False'
 WINDOW = xbmcgui.Window( 10000 )
+MONITOR = xbmc.Monitor()
 
 __addon__        = xbmcaddon.Addon()
 __addonversion__ = __addon__.getAddonInfo('version')
@@ -27,7 +28,7 @@ __addonid__      = __addon__.getAddonInfo('id')
 __addonname__    = __addon__.getAddonInfo('name')
 
 def log(txt):
-    message = '%s: %s' % (__addonname__, txt.encode('ascii', 'ignore'))
+    message = '%s: %s' % (__addonname__, txt)
     xbmc.log(msg=message, level=xbmc.LOGDEBUG)
 
 def _getPlaylistType ():
@@ -108,7 +109,7 @@ def _getMovies ( ):
     _files = _json_pl_response.get( "result", {} ).get( "files" )
     if _files:
         for _item in _files:
-            if xbmc.abortRequested:
+            if MONITOR.abortRequested():
                 break
             if _item['filetype'] == 'directory':
                 _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "video", "properties": ["title", "originaltitle", "playcount", "year", "genre", "studio", "country", "tagline", "plot", "runtime", "file", "plotoutline", "lastplayed", "trailer", "rating", "resume", "art", "streamdetails", "mpaa", "director", "dateadded"]}, "id": 1}' %(_item['file']))
@@ -118,7 +119,7 @@ def _getMovies ( ):
                     log("[RandomAndLastItems] ## MOVIESET %s COULD NOT BE LOADED ##" %(_item['file']))
                     log("[RandomAndLastItems] JSON RESULT %s" %_json_set_response)
                 for _movie in _movies:
-                    if xbmc.abortRequested:
+                    if MONITOR.abortRequested():
                         break
                     _playcount = _movie['playcount']
                     if RESUME == 'True':
@@ -154,12 +155,12 @@ def _getMovies ( ):
         else:
             random.shuffle(_result, random.random)
         for _movie in _result:
-            if xbmc.abortRequested or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == LIMIT:
                 break
             _count += 1
             _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMovieDetails", "params": {"properties": ["streamdetails"], "movieid":%s }, "id": 1}' %(_movie['id']))
             _json_query = json.loads(_json_query)
-            if _json_query.has_key('result') and _json_query['result'].has_key('moviedetails'):
+            if 'result' in _json_query and 'moviedetails' in _json_query['result']:
                 item = _json_query['result']['moviedetails']
                 _movie['streamdetails'] = item['streamdetails']
             if _movie['resume']['position'] > 0:
@@ -243,13 +244,13 @@ def _getMusicVideosFromPlaylist ( ):
     _unwatched = 0
     _watched = 0
     # Request database using JSON
-    _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "video", "properties": ["title", "playcount", "year", "genre", "studio", "album", "artist", "track", "plot", "tag", "runtime", "file", "lastplayed", "resume", "art", "streamdetails", "director", "dateadded"]}, "id": 1}' %(PLAYLIST))
+    _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "video", "properties": ["title", "playcount", "year", "genre", "studio", "album", "artist",  "track", "plot", "tag", "runtime", "file", "lastplayed", "resume", "art", "streamdetails", "director", "dateadded"]}, "id": 1}' %(PLAYLIST))
     _json_pl_response = json.loads(_json_query)
     # If request return some results
     _files = _json_pl_response.get( "result", {} ).get( "files" )
     if _files:
         for _item in _files:
-            if xbmc.abortRequested:
+            if MONITOR.abortRequested():
                 break
             _playcount = _item['playcount']
             if RESUME == 'True':
@@ -272,12 +273,12 @@ def _getMusicVideosFromPlaylist ( ):
         else:
             random.shuffle(_result, random.random)
         for _musicvid in _result:
-            if xbmc.abortRequested or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == LIMIT:
                 break
             _count += 1
             _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMusicVideoDetails", "params": {"properties": ["streamdetails"], "musicvideoid":%s }, "id": 1}' %(_musicvid['id']))
             _json_query = json.loads(_json_query)
-            if _json_query['result'].has_key('musicvideodetails'):
+            if 'musicvideodetails' in _json_query['result']:
                 item = _json_query['result']['musicvideodetails']
                 _musicvid['streamdetails'] = item['streamdetails']
             if _musicvid['resume']['position'] > 0:
@@ -364,7 +365,7 @@ def _getEpisodesFromPlaylist ( ):
     _files = _json_pl_response.get( "result", {} ).get( "files" )
     if _files:
         for _file in _files:
-            if xbmc.abortRequested:
+            if MONITOR.abortRequested():
                 break
             if _file['type'] == 'tvshow':
                 _tvshows += 1
@@ -374,7 +375,7 @@ def _getEpisodesFromPlaylist ( ):
                 _episodes = _json_response.get( "result", {} ).get( "episodes" )
                 if _episodes:
                     for _episode in _episodes:
-                        if xbmc.abortRequested:
+                        if MONITOR.abortRequested():
                             break
                         # Add TV Show fanart and thumbnail for each episode
                         art = _episode['art']
@@ -406,13 +407,12 @@ def _getEpisodesFromPlaylist ( ):
         else:
             random.shuffle(_result, random.random)
         for _episode in _result:
-            if xbmc.abortRequested or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == LIMIT:
                 break
             _count += 1
             '''
             if _episode.get("tvshowid"):
                 _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetTVShowDetails", "params": { "tvshowid": %s, "properties": ["title", "fanart", "thumbnail"] }, "id": 1}' %(_episode['tvshowid']))
-                _json_query = unicode(_json_query, 'utf-8', errors='ignore')
                 _json_pl_response = json.loads(_json_query)
                 _tvshow = _json_pl_response.get( "result", {} ).get( "tvshowdetails" )
             '''
@@ -445,7 +445,7 @@ def _getEpisodes ( ):
     _episodes = _json_pl_response.get( "result", {} ).get( "episodes" )
     if _episodes:
         for _item in _episodes:
-            if xbmc.abortRequested:
+            if MONITOR.abortRequested():
                 break
             _id = _item['tvshowid']
             if _id not in _tvshowid:
@@ -464,7 +464,7 @@ def _getEpisodes ( ):
         else:
             random.shuffle(_result, random.random)
         for _episode in _result:
-            if xbmc.abortRequested or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == LIMIT:
                 break
             _count += 1
             _setEpisodeProperties ( _episode, _count )
@@ -508,7 +508,7 @@ def _getAlbumsFromPlaylist ( ):
     _files = _json_pl_response.get( "result", {} ).get( "files" )
     if _files:
         for _file in _files:
-            if xbmc.abortRequested:
+            if MONITOR.abortRequested():
                 break
             if _file['type'] == 'album':
                 _albums.append(_file)
@@ -545,7 +545,7 @@ def _getAlbumsFromPlaylist ( ):
         '''
         _count = 0
         for _album in _albums:
-            if xbmc.abortRequested or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == LIMIT:
                 break
             _count += 1
             _albumid = _album['id'];
@@ -604,7 +604,7 @@ def _setEpisodeProperties ( _episode, _count ):
     if _episode:
         _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodeDetails", "params": {"properties": ["streamdetails"], "episodeid":%s }, "id": 1}' %(_episode['id']))
         _json_query = json.loads(_json_query)
-        if _json_query['result'].has_key('episodedetails'):
+        if 'episodedetails' in _json_query['result']:
             item = _json_query['result']['episodedetails']
             _episode['streamdetails'] = item['streamdetails']
         episode = ("%.2d" % float(_episode['episode']))
