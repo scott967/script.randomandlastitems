@@ -743,8 +743,8 @@ def _parse_argv ( ):
                     UNWATCHED = 'False'
             elif 'resume=' in param:
                 RESUME = param.replace('resume=', '')
-        # If playlist= parameter is set then get type= from playlist
-        if PLAYLIST != '':
+
+        if PLAYLIST != '' and xbmcvfs.exists(xbmc.translatePath(PLAYLIST)):
             _getPlaylistType ();
         if PROPERTY == "":
             PROPERTY = "Playlist%s%s%s" % ( METHOD, TYPE, MENU )
