@@ -1,4 +1,4 @@
-import xbmc, xbmcgui, xbmcaddon
+import xbmc, xbmcgui, xbmcaddon, xbmcvfs
 import re, sys, os, time
 import random
 import urllib.request
