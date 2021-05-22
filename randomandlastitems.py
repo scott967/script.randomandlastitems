@@ -174,7 +174,7 @@ def _getMovies ( ):
             else:
                 watched = "false"
             path = media_path(_movie['file'])
-            play = 'XBMC.RunScript(' + __addonid__ + ',movieid=' + str(_movie.get('id')) + ')'
+            play = 'RunScript(' + __addonid__ + ',movieid=' + str(_movie.get('id')) + ')'
             art = _movie['art']
             streaminfo = media_streamdetails(_movie['file'].lower(),
                                        _movie['streamdetails'])
@@ -292,7 +292,7 @@ def _getMusicVideosFromPlaylist ( ):
             else:
                 watched = "false"
             path = media_path(_musicvid['file'])
-            play = 'XBMC.RunScript(' + __addonid__ + ',musicvideoid=' + str(_musicvid.get('id')) + ')'
+            play = 'RunScript(' + __addonid__ + ',musicvideoid=' + str(_musicvid.get('id')) + ')'
             art = _musicvid['art']
             streaminfo = media_streamdetails(_musicvid['file'].lower(),
                                              _musicvid['streamdetails'])
@@ -619,7 +619,7 @@ def _setEpisodeProperties ( _episode, _count ):
             played = '0%'
         art = _episode['art']
         path = media_path(_episode['file'])
-        play = 'XBMC.RunScript(' + __addonid__ + ',episodeid=' + str(_episode.get('id')) + ')'
+        play = 'RunScript(' + __addonid__ + ',episodeid=' + str(_episode.get('id')) + ')'
         runtime = str(int((_episode['runtime'] / 60) + 0.5))
         streaminfo = media_streamdetails(_episode['file'].lower(),
                                          _episode['streamdetails'])
@@ -670,7 +670,7 @@ def _setAlbumPROPERTIES ( _album, _count ):
         _rating = str(_album['rating'])
         if _rating == '48':
             _rating = ''
-        play = 'XBMC.RunScript(' + __addonid__ + ',albumid=' + str(_album.get('albumid')) + ')'
+        play = 'RunScript(' + __addonid__ + ',albumid=' + str(_album.get('albumid')) + ')'
         path = 'musicdb://albums/' + str(_album.get('albumid')) + '/'
         _setProperty("%s.%d.Title"       % ( PROPERTY, _count ), _album.get('title',''))
         _setProperty("%s.%d.Artist"      % ( PROPERTY, _count ), " / ".join(_album.get('artist','')))
