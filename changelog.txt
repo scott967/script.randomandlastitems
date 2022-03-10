@@ -1,3 +1,11 @@
+v2.2.2+matrix.6
+- Python 3
+- Matrix compatibility 
+- refactor all code
+- support Nexus userrating in JSON RPC
+- improve data for musicvideos see README
+- improve data for music  see README
+
 v2.2.2
 - Fix when JSON query for movie details return no result
 

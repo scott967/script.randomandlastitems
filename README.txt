@@ -52,6 +52,7 @@ Script will look at smart playlist type to make the difference between Movies an
 %s.%d.Tagline
 %s.%d.Runtime
 %s.%d.Rating
+%s.%d.UserRating (Kodi v20)
 %s.%d.Trailer
 %s.%d.MPAA
 %s.%d.Director
@@ -78,12 +79,11 @@ Script will look at smart playlist type to make the difference between Movies an
 2 - Properties for Music videos
 
 %s = Playlist<method>MusicVideos<menu>
-%d = Movie number
-
+%d = Music video number
 %s.Type = MusicVideo
-%s.Count = Number of movies in library or playlist
-%s.Unwatched = Number of unwatched movies in library or playlist
-%s.Watched = Number of watched movies in library or playlist
+%s.Count = Number of music videos in library or playlist
+%s.Unwatched = Number of unwatched music videos in library or playlist
+%s.Watched = Number of watched music videos in library or playlist
 %s.Name = Name of the playlist
 %s.%d.DBID
 %s.%d.Title
@@ -96,6 +96,8 @@ Script will look at smart playlist type to make the difference between Movies an
 %s.%d.Plot
 %s.%d.Tag
 %s.%d.Runtime
+%s.%d.Rating
+%s.%d.UserRating (Kodi v20)
 %s.%d.Director
 %s.%d.Art(thumb) (same value as Art(poster) but make skinner life easier ;)
 %s.%d.Art(poster)
@@ -166,7 +168,7 @@ Script will look at smart playlist type to make the difference between Movies an
 %s.%d.AudioCodec
 %s.%d.AudioChannels
 
-* type=Music
+* type=Music Valid playlist types are "songs" or "albuns"
 
 %s = Playlist<method>Music<menu>
 %d = Album number
@@ -179,13 +181,14 @@ Script will look at smart playlist type to make the difference between Movies an
 %s.%d.Artist
 %s.%d.Genre
 %s.%d.Year
-%s.%d.Theme
-%s.%d.Mood
-%s.%d.Style
-%s.%d.Type
+%s.%d.Theme (albums)
+%s.%d.Mood (albums)
+%s.%d.Style (albums)
+%s.%d.Type (albums)
 %s.%d.RecordLabel
 %s.%d.Description
 %s.%d.Rating
+%s.%d.UserRating (Kodi v20)
 %s.%d.Art(thumb)
 %s.%d.Art(fanart)
 %s.%d.Play
