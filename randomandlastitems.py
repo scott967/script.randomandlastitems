@@ -589,10 +589,12 @@ def _getMusicVideosFromPlaylist() -> None:
                                              _musicvid['streamdetails'])
             # Get runtime from streamdetails or from NFO
             if streaminfo['duration'] != 0:
-                runtime = str(int((streaminfo['duration'] / 60) + 0.5))
+                runtime = (str(streaminfo['duration'] // 60) + ':'
+                            + '{:02d}'.format(streaminfo['duration'] % 60))
             else:
                 if isinstance(_musicvid['runtime'], int):
-                    runtime = str(int((_musicvid['runtime'] / 60) + 0.5))
+                    runtime = (str(_musicvid['runtime'] // 60) + ':'
+                                + '{:02d}'.format(_musicvid['runtime'] % 60))
                 else:
                     runtime = _musicvid['runtime']
             # Set window properties
@@ -1199,7 +1201,7 @@ def _getMusicFromPlaylist() -> None:
 
 
 def _clearProperties() -> None:
-    """Clears any existing window properties
+    """Clears any existing window properties for the current playlist
 
     Returns:
         None
@@ -1509,7 +1511,7 @@ def _parse_argv() -> None:
 
 
 def media_streamdetails(filename: str, streamdetails: dict) -> dict:
-    """gets stream details from Kodi library
+    """gets stream details from Kodi library computes the video resolution
 
     Args:
         filename (str): filename
@@ -1604,7 +1606,7 @@ def media_path(path) -> str:
 
 # Parse argv for any preferences
 _parse_argv()
-# Clear Properties
+# Clear Properties for playlist PROPERTY from _parse_argv()
 _clearProperties()
 # Get movies and fill Properties
 if TYPE == 'Movie':
