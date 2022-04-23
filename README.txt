@@ -96,6 +96,7 @@ Script will look at smart playlist type to make the difference between Movies an
 %s.%d.Plot
 %s.%d.Tag
 %s.%d.Runtime
+%s.%d.Runtimesecs (formated min:sec)
 %s.%d.Rating
 %s.%d.UserRating (Kodi v20)
 %s.%d.Director

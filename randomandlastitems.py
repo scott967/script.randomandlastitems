@@ -589,11 +589,13 @@ def _getMusicVideosFromPlaylist() -> None:
                                              _musicvid['streamdetails'])
             # Get runtime from streamdetails or from NFO
             if streaminfo['duration'] != 0:
-                runtime = (str(streaminfo['duration'] // 60) + ':'
+                runtime = str(int((streaminfo['duration'] / 60) + 0.5))
+                runtimesecs = (str(streaminfo['duration'] // 60) + ':'
                             + '{:02d}'.format(streaminfo['duration'] % 60))
             else:
                 if isinstance(_musicvid['runtime'], int):
-                    runtime = (str(_musicvid['runtime'] // 60) + ':'
+                    runtime = str(int((_musicvid['runtime'] / 60) + 0.5))
+                    runtimesecs = (str(_musicvid['runtime'] // 60) + ':'
                                 + '{:02d}'.format(_musicvid['runtime'] % 60))
                 else:
                     runtime = _musicvid['runtime']
@@ -611,6 +613,7 @@ def _getMusicVideosFromPlaylist() -> None:
             _setProperty('%s.%d.Plot'            % (PROPERTY, _count), _musicvid.get('plot',''))
             _setProperty('%s.%d.Tag'             % (PROPERTY, _count), ' / '.join(_musicvid.get('tag','')))
             _setProperty('%s.%d.Runtime'         % (PROPERTY, _count), runtime)
+            _setProperty('%s.%d.Runtimesecs'     % (PROPERTY, _count), runtimesecs)
             _setProperty('%s.%d.Director'        % (PROPERTY, _count), ' / '.join(_musicvid.get('director','')))
             _setProperty('%s.%d.Art(thumb)'      % (PROPERTY, _count), art.get('thumb',''))
             _setProperty('%s.%d.Art(poster)'     % (PROPERTY, _count), art.get('poster',''))
