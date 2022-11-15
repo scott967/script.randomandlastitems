@@ -62,7 +62,7 @@ __addonname__ = __addon__.getAddonInfo('name')
 
 
 def log(txt: str) -> None:
-    """utility writes info to Kodi debug level log 
+    """utility writes info to Kodi debug level log
 
     Args:
         txt (str): text to log
