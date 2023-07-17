@@ -36,17 +36,17 @@ import xbmcvfs
 from xbmcgui import Window
 
 # Define global variables
-LIMIT = 20
-METHOD = 'Random'
-REVERSE = False
-MENU = ''
-PLAYLIST = ''
-PROPERTY = ''
-RESUME = 'False'
-SORTBY = ''
+_RALI_GLOBALS = {'LIMIT': 20,
+'METHOD': 'Random',
+'REVERSE': False,
+'MENU': '',
+'PLAYLIST': '',
+'PROPERTY': '',
+'RESUME': 'False',
+'SORTBY': '',
+'TYPE': '',
+'UNWATCHED': 'False'}
 START_TIME: float = time.time()
-TYPE = ''
-UNWATCHED = 'False'
 WINDOW = xbmcgui.Window(10000)
 MONITOR = xbmc.Monitor()
 # Nexus JSON RPC 12.9.0 required for userrating
@@ -69,7 +69,7 @@ def log(txt: str) -> None:
 
     Returns: None
     """
-    message = '{}: {}'.format(__addonname__, txt)
+    message = f'{__addonname__}: {txt}'
     xbmc.log(msg=message, level=xbmc.LOGDEBUG)
 
 
@@ -78,23 +78,18 @@ def _getPlaylistType() -> None:
 
         Returns:  None
     """
-    global METHOD
-    global PLAYLIST
-    global REVERSE
-    global SORTBY
-    global TYPE
-    _doc = parse(xbmcvfs.translatePath(PLAYLIST))
+    _doc = parse(xbmcvfs.translatePath(_RALI_GLOBALS['PLAYLIST']))
     _type = _doc.getElementsByTagName('smartplaylist')[0].attributes.item(0).value
     if _type == 'movies':
-        TYPE = 'Movie'
+        _RALI_GLOBALS['TYPE'] = 'Movie'
     if _type == 'musicvideos':
-        TYPE = 'MusicVideo'
+        _RALI_GLOBALS['TYPE'] = 'MusicVideo'
     if _type == 'episodes' or _type == 'tvshows':
-        TYPE = 'Episode'
+        _RALI_GLOBALS['TYPE'] = 'Episode'
     if _type == 'songs' or _type == 'albums':
-        TYPE = 'Music'
+        _RALI_GLOBALS['TYPE'] = 'Music'
     if _type == "artists" or _type == 'mixed':
-        TYPE = 'Invalid'
+        _RALI_GLOBALS['TYPE'] = 'Invalid'
     # get playlist name
     _name = ''
     if _doc.getElementsByTagName('name'):
@@ -102,15 +97,15 @@ def _getPlaylistType() -> None:
             _name = _doc.getElementsByTagName('name')[0].firstChild.nodeValue
         except:
             _name = ''
-    _setProperty('{}.Name'.format(PROPERTY), str(_name))
+    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Name', str(_name))
     # get playlist order
-    if METHOD == 'Playlist':
+    if _RALI_GLOBALS['METHOD'] == 'Playlist':
         if _doc.getElementsByTagName('order'):
-            SORTBY = _doc.getElementsByTagName('order')[0].firstChild.nodeValue
+            _RALI_GLOBALS['SORTBY'] = _doc.getElementsByTagName('order')[0].firstChild.nodeValue
             if _doc.getElementsByTagName('order')[0].attributes.item(0).value == 'descending':
-                REVERSE = True
+                _RALI_GLOBALS['REVERSE'] = True
         else:
-            METHOD = ''
+            _RALI_GLOBALS['METHOD'] = ''
 
 
 def _timeTook(t: float) -> str:
@@ -146,8 +141,6 @@ def _watchedOrResume(_total: int, _watched: int, _unwatched: int, _result: list,
     Returns:
         Tuple[int, int, int, list]: updated totals and item list
     """
-    global RESUME
-    global UNWATCHED
     _total += 1
     _playcount: int = _file['playcount']
     _resume: int = _file['resume']['position']
@@ -158,7 +151,9 @@ def _watchedOrResume(_total: int, _watched: int, _unwatched: int, _result: list,
     else:
         _file['watched'] = 'True'
         _watched += 1
-    if (UNWATCHED == 'False' and RESUME == 'False') or (UNWATCHED == 'True' and _playcount == 0) or (RESUME == 'True' and _resume != 0) and _file.get('dateadded'):
+    if ((_RALI_GLOBALS['UNWATCHED'] == 'False' and _RALI_GLOBALS['RESUME'] == 'False')
+    or (_RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
+    or (_RALI_GLOBALS['RESUME'] == 'True' and _resume != 0) and _file.get('dateadded')):
         _result.append(_file)
     return _total, _watched, _unwatched, _result
 
@@ -171,22 +166,13 @@ def _getMovies() -> None:
     Returns:
         None
     """
-    global LIMIT
-    global METHOD
-    global MENU
-    global PLAYLIST
-    global PROPERTY
-    global RESUME
-    global REVERSE
-    global SORTBY
-    global UNWATCHED
     _result: List[dict] = []
     _total = 0
     _unwatched = 0
     _watched = 0
     # Request database using JSON
-    if PLAYLIST == '':
-        PLAYLIST = 'videodb://movies/titles/'
+    if _RALI_GLOBALS['PLAYLIST'] == '':
+        _RALI_GLOBALS['PLAYLIST'] = 'videodb://movies/titles/'
     if JSON_RPC_NEXUS:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
@@ -217,7 +203,7 @@ def _getMovies() -> None:
                     '"director", '
                     '"dateadded"]'
                 '}, '
-            '"id": 1}' % (PLAYLIST))
+            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
     else:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
@@ -247,7 +233,7 @@ def _getMovies() -> None:
                     '"director", '
                     '"dateadded"]'
                 '}, '
-            '"id": 1}' % (PLAYLIST))
+            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
     _json_pl_response: dict = json.loads(_json_query)
     # If request return some results
     _files: dict = _json_pl_response.get('result', {}).get('files')
@@ -323,14 +309,13 @@ def _getMovies() -> None:
                 _movies: List[dict] = _json_set_response.get(
                     'result', {}).get('files') or []
                 if not _movies:
-                    log('## MOVIESET {} COULD NOT BE LOADED ##'.format(
-                        _item['file']))
-                    log('JSON RESULT {}'.format(_json_set_response))
+                    log(f'## MOVIESET {_item["file"]} COULD NOT BE LOADED ##')
+                    log(f'JSON RESULT {_json_set_response}')
                 for _movie in _movies:
                     if MONITOR.abortRequested():
                         break
                     _playcount: int = _movie['playcount']
-                    if RESUME == 'True':
+                    if _RALI_GLOBALS['RESUME'] == 'True':
                         _resume: int = _movie['resume']['position']
                     else:
                         _resume = 0
@@ -339,11 +324,13 @@ def _getMovies() -> None:
                         _unwatched += 1
                     else:
                         _watched += 1
-                    if (UNWATCHED == 'False' and RESUME == 'False') or (UNWATCHED == 'True' and _playcount == 0) or (RESUME == 'True' and _resume != 0):
+                    if ((_RALI_GLOBALS['UNWATCHED'] == 'False' and _RALI_GLOBALS['RESUME'] == 'False')
+                    or (_RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
+                    or (_RALI_GLOBALS['RESUME'] == 'True' and _resume != 0)):
                         _result.append(_movie)
             else:
                 _playcount = _item['playcount']
-                if RESUME == 'True':
+                if _RALI_GLOBALS['RESUME'] == 'True':
                     _resume = _item['resume']['position']
                 else:
                     _resume = 0
@@ -352,19 +339,21 @@ def _getMovies() -> None:
                     _unwatched += 1
                 else:
                     _watched += 1
-                if (UNWATCHED == 'False' and RESUME == 'False') or (UNWATCHED == 'True' and _playcount == 0) or (RESUME == 'True' and _resume != 0):
+                if ((_RALI_GLOBALS['UNWATCHED'] == 'False' and _RALI_GLOBALS['RESUME'] == 'False')
+                or (_RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
+                or (_RALI_GLOBALS['RESUME'] == 'True' and _resume != 0)):
                     _result.append(_item)
         _setVideoProperties(_total, _watched, _unwatched)
         _count = 0
-        if METHOD == 'Last':
+        if _RALI_GLOBALS['METHOD'] == 'Last':
             _result = sorted(_result, key=itemgetter(
                 'dateadded'), reverse=True)
-        elif METHOD == 'Playlist':
-            _result = sorted(_result, key=itemgetter(SORTBY), reverse=REVERSE)
+        elif _RALI_GLOBALS['METHOD'] == 'Playlist':
+            _result = sorted(_result, key=itemgetter(_RALI_GLOBALS['SORTBY']), reverse=_RALI_GLOBALS['REVERSE'])
         else:
             random.shuffle(_result, random.random)
         for _movie in _result:
-            if MONITOR.abortRequested() or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _json_query = xbmc.executeJSONRPC(
@@ -403,49 +392,49 @@ def _getMovies() -> None:
                 else:
                     runtime = _movie['runtime']
             # Set window properties
-            _setProperty('%s.%d.DBID'            % (PROPERTY, _count), str(_movie.get('id','')))
-            _setProperty('%s.%d.Title'           % (PROPERTY, _count), _movie.get('title',''))
-            _setProperty('%s.%d.OriginalTitle'   % (PROPERTY, _count), _movie.get('originaltitle',''))
-            _setProperty('%s.%d.Year'            % (PROPERTY, _count), str(_movie.get('year','')))
-            _setProperty('%s.%d.Genre'           % (PROPERTY, _count), ' / '.join(_movie.get('genre','')))
-            _setProperty('%s.%d.Studio'          % (PROPERTY, _count), ' / '.join(_movie.get('studio','')))
-            _setProperty('%s.%d.Country'         % (PROPERTY, _count), ' / '.join(_movie.get('country','')))
-            _setProperty('%s.%d.Plot'            % (PROPERTY, _count), _movie.get('plot',''))
-            _setProperty('%s.%d.PlotOutline'     % (PROPERTY, _count), _movie.get('plotoutline',''))
-            _setProperty('%s.%d.Tagline'         % (PROPERTY, _count), _movie.get('tagline',''))
-            _setProperty('%s.%d.Runtime'         % (PROPERTY, _count), runtime)
-            _setProperty('%s.%d.Rating'          % (PROPERTY, _count), str(round(float(_movie.get('rating','0')),1)))
-            _setProperty('%s.%d.UserRating'       % (PROPERTY, _count), str(_movie.get('userrating','0')))
-            _setProperty('%s.%d.Trailer'         % (PROPERTY, _count), _movie.get('trailer',''))
-            _setProperty('%s.%d.MPAA'            % (PROPERTY, _count), _movie.get('mpaa',''))
-            _setProperty('%s.%d.Director'        % (PROPERTY, _count), ' / '.join(_movie.get('director','')))
-            _setProperty('%s.%d.Art(thumb)'      % (PROPERTY, _count), art.get('thumb',''))
-            _setProperty('%s.%d.Art(poster)'     % (PROPERTY, _count), art.get('poster',''))
-            _setProperty('%s.%d.Art(fanart)'     % (PROPERTY, _count), art.get('fanart',''))
-            _setProperty('%s.%d.Art(clearlogo)'  % (PROPERTY, _count), art.get('clearlogo',''))
-            _setProperty('%s.%d.Art(clearart)'   % (PROPERTY, _count), art.get('clearart',''))
-            _setProperty('%s.%d.Art(landscape)'  % (PROPERTY, _count), art.get('landscape',''))
-            _setProperty('%s.%d.Art(banner)'     % (PROPERTY, _count), art.get('banner',''))
-            _setProperty('%s.%d.Art(discart)'    % (PROPERTY, _count), art.get('discart',''))                
-            _setProperty('%s.%d.Resume'          % (PROPERTY, _count), resume)
-            _setProperty('%s.%d.PercentPlayed'   % (PROPERTY, _count), played)
-            _setProperty('%s.%d.Watched'         % (PROPERTY, _count), watched)
-            _setProperty('%s.%d.File'            % (PROPERTY, _count), _movie.get('file',''))
-            _setProperty('%s.%d.Path'            % (PROPERTY, _count), path)
-            _setProperty('%s.%d.Play'            % (PROPERTY, _count), play)
-            _setProperty('%s.%d.VideoCodec'      % (PROPERTY, _count), streaminfo['videocodec'])
-            _setProperty('%s.%d.VideoResolution' % (PROPERTY, _count), streaminfo['videoresolution'])
-            _setProperty('%s.%d.VideoAspect'     % (PROPERTY, _count), streaminfo['videoaspect'])
-            _setProperty('%s.%d.AudioCodec'      % (PROPERTY, _count), streaminfo['audiocodec'])
-            _setProperty('%s.%d.AudioChannels'   % (PROPERTY, _count), str(streaminfo['audiochannels']))
+            _setProperty('%s.%d.DBID'            % (_RALI_GLOBALS['PROPERTY'], _count), str(_movie.get('id','')))
+            _setProperty('%s.%d.Title'           % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('title',''))
+            _setProperty('%s.%d.OriginalTitle'   % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('originaltitle',''))
+            _setProperty('%s.%d.Year'            % (_RALI_GLOBALS['PROPERTY'], _count), str(_movie.get('year','')))
+            _setProperty('%s.%d.Genre'           % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_movie.get('genre','')))
+            _setProperty('%s.%d.Studio'          % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_movie.get('studio','')))
+            _setProperty('%s.%d.Country'         % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_movie.get('country','')))
+            _setProperty('%s.%d.Plot'            % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('plot',''))
+            _setProperty('%s.%d.PlotOutline'     % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('plotoutline',''))
+            _setProperty('%s.%d.Tagline'         % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('tagline',''))
+            _setProperty('%s.%d.Runtime'         % (_RALI_GLOBALS['PROPERTY'], _count), runtime)
+            _setProperty('%s.%d.Rating'          % (_RALI_GLOBALS['PROPERTY'], _count), str(round(float(_movie.get('rating','0')),1)))
+            _setProperty('%s.%d.UserRating'      % (_RALI_GLOBALS['PROPERTY'], _count), str(_movie.get('userrating','0')))
+            _setProperty('%s.%d.Trailer'         % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('trailer',''))
+            _setProperty('%s.%d.MPAA'            % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('mpaa',''))
+            _setProperty('%s.%d.Director'        % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_movie.get('director','')))
+            _setProperty('%s.%d.Art(thumb)'      % (_RALI_GLOBALS['PROPERTY'], _count), art.get('thumb',''))
+            _setProperty('%s.%d.Art(poster)'     % (_RALI_GLOBALS['PROPERTY'], _count), art.get('poster',''))
+            _setProperty('%s.%d.Art(fanart)'     % (_RALI_GLOBALS['PROPERTY'], _count), art.get('fanart',''))
+            _setProperty('%s.%d.Art(clearlogo)'  % (_RALI_GLOBALS['PROPERTY'], _count), art.get('clearlogo',''))
+            _setProperty('%s.%d.Art(clearart)'   % (_RALI_GLOBALS['PROPERTY'], _count), art.get('clearart',''))
+            _setProperty('%s.%d.Art(landscape)'  % (_RALI_GLOBALS['PROPERTY'], _count), art.get('landscape',''))
+            _setProperty('%s.%d.Art(banner)'     % (_RALI_GLOBALS['PROPERTY'], _count), art.get('banner',''))
+            _setProperty('%s.%d.Art(discart)'    % (_RALI_GLOBALS['PROPERTY'], _count), art.get('discart',''))
+            _setProperty('%s.%d.Resume'          % (_RALI_GLOBALS['PROPERTY'], _count), resume)
+            _setProperty('%s.%d.PercentPlayed'   % (_RALI_GLOBALS['PROPERTY'], _count), played)
+            _setProperty('%s.%d.Watched'         % (_RALI_GLOBALS['PROPERTY'], _count), watched)
+            _setProperty('%s.%d.File'            % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('file',''))
+            _setProperty('%s.%d.Path'            % (_RALI_GLOBALS['PROPERTY'], _count), path)
+            _setProperty('%s.%d.Play'            % (_RALI_GLOBALS['PROPERTY'], _count), play)
+            _setProperty('%s.%d.VideoCodec'      % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videocodec'])
+            _setProperty('%s.%d.VideoResolution' % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videoresolution'])
+            _setProperty('%s.%d.VideoAspect'     % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videoaspect'])
+            _setProperty('%s.%d.AudioCodec'      % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['audiocodec'])
+            _setProperty('%s.%d.AudioChannels'   % (_RALI_GLOBALS['PROPERTY'], _count), str(streaminfo['audiochannels']))
 
-        if _count != LIMIT:
-            while _count < LIMIT:
+        if _count != _RALI_GLOBALS['LIMIT']:
+            while _count < _RALI_GLOBALS['LIMIT']:
                 _count += 1
-            _setProperty('%s.%d.Title'       % (PROPERTY, _count), '')
+            _setProperty('%s.%d.Title'       % (_RALI_GLOBALS['PROPERTY'], _count), '')
     else:
-        log('## PLAYLIST {} COULD NOT BE LOADED ##'.format(PLAYLIST))
-        log('JSON RESULT {}'.format(_json_pl_response))
+        log(f'## PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+        log(f'JSON RESULT {_json_pl_response}')
 
 
 def _getMusicVideosFromPlaylist() -> None:
@@ -453,22 +442,13 @@ def _getMusicVideosFromPlaylist() -> None:
 
     If a music video playlist is not provided uses music video titles node
     """
-    global LIMIT
-    global METHOD
-    global MENU
-    global PLAYLIST
-    global PROPERTY
-    global RESUME
-    global REVERSE
-    global SORTBY
-    global UNWATCHED
     _result = []
     _total = 0
     _unwatched = 0
     _watched = 0
     # Request database using JSON
-    if PLAYLIST == '':
-        PLAYLIST = 'musicdb://musicvideos/titles'
+    if _RALI_GLOBALS['PLAYLIST'] == '':
+        _RALI_GLOBALS['PLAYLIST'] = 'musicdb://musicvideos/titles'
     if JSON_RPC_NEXUS:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
@@ -498,7 +478,7 @@ def _getMusicVideosFromPlaylist() -> None:
                         '"director", '
                         '"dateadded"]'
                     '}, '
-                '"id": 1}' % (PLAYLIST))
+                '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
     else:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
@@ -527,7 +507,7 @@ def _getMusicVideosFromPlaylist() -> None:
                         '"director", '
                         '"dateadded"]'
                     '}, '
-                '"id": 1}' % (PLAYLIST))
+                '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
     _json_pl_response: dict = json.loads(_json_query)
     # If request return some results
     _files = _json_pl_response.get('result', {}).get('files')
@@ -536,7 +516,7 @@ def _getMusicVideosFromPlaylist() -> None:
             if MONITOR.abortRequested():
                 break
             _playcount = _item['playcount']
-            if RESUME == 'True':
+            if _RALI_GLOBALS['RESUME'] == 'True':
                 _resume = _item['resume']['position']
             else:
                 _resume = 0
@@ -545,19 +525,21 @@ def _getMusicVideosFromPlaylist() -> None:
                 _unwatched += 1
             else:
                 _watched += 1
-            if (UNWATCHED == 'False' and RESUME == 'False') or (UNWATCHED == 'True' and _playcount == 0) or (RESUME == 'True' and _resume != 0):
+            if ((_RALI_GLOBALS['UNWATCHED'] == 'False' and _RALI_GLOBALS['RESUME'] == 'False')
+            or (_RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
+            or (_RALI_GLOBALS['RESUME'] == 'True' and _resume != 0)):
                 _result.append(_item)
         _setVideoProperties(_total, _watched, _unwatched)
         _count = 0
-        if METHOD == 'Last':
+        if _RALI_GLOBALS['METHOD'] == 'Last':
             _result = sorted(_result, key=itemgetter(
                 'dateadded'), reverse=True)
-        elif METHOD == 'Playlist':
-            _result = sorted(_result, key=itemgetter(SORTBY), reverse=REVERSE)
+        elif _RALI_GLOBALS['METHOD'] == 'Playlist':
+            _result = sorted(_result, key=itemgetter(_RALI_GLOBALS['SORTBY']), reverse=_RALI_GLOBALS['REVERSE'])
         else:
             random.shuffle(_result, random.random)
         for _musicvid in _result:
-            if MONITOR.abortRequested() or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _json_query = xbmc.executeJSONRPC(
@@ -600,62 +582,54 @@ def _getMusicVideosFromPlaylist() -> None:
                 else:
                     runtime = _musicvid['runtime']
             # Set window properties
-            _setProperty('%s.%d.DBID'            % (PROPERTY, _count), str(_musicvid.get('id')))
-            _setProperty('%s.%d.Title'           % (PROPERTY, _count), _musicvid.get('title',''))
-            _setProperty('%s.%d.Year'            % (PROPERTY, _count), str(_musicvid.get('year','')))
-            _setProperty('%s.%d.Genre'           % (PROPERTY, _count), ' / '.join(_musicvid.get('genre','')))
-            _setProperty('%s.%d.Studio'          % (PROPERTY, _count), ' / '.join(_musicvid.get('studio','')))
-            _setProperty('%s.%d.Artist'          % (PROPERTY, _count), ' / '.join(_musicvid.get('artist','')))
-            _setProperty('%s.%d.Album'           % (PROPERTY, _count), _musicvid.get('album',''))
-            _setProperty('%s.%d.Track'           % (PROPERTY, _count), str(_musicvid.get('track','')))
-            _setProperty('%s.%d.Rating'          % (PROPERTY, _count), str(_musicvid.get('rating','')))
-            _setProperty('%s.%d.UserRating'      % (PROPERTY, _count), str(_musicvid.get('userrating','')))
-            _setProperty('%s.%d.Plot'            % (PROPERTY, _count), _musicvid.get('plot',''))
-            _setProperty('%s.%d.Tag'             % (PROPERTY, _count), ' / '.join(_musicvid.get('tag','')))
-            _setProperty('%s.%d.Runtime'         % (PROPERTY, _count), runtime)
-            _setProperty('%s.%d.Runtimesecs'     % (PROPERTY, _count), runtimesecs)
-            _setProperty('%s.%d.Director'        % (PROPERTY, _count), ' / '.join(_musicvid.get('director','')))
-            _setProperty('%s.%d.Art(thumb)'      % (PROPERTY, _count), art.get('thumb',''))
-            _setProperty('%s.%d.Art(poster)'     % (PROPERTY, _count), art.get('poster',''))
-            _setProperty('%s.%d.Art(fanart)'     % (PROPERTY, _count), art.get('fanart',''))
-            _setProperty('%s.%d.Art(clearlogo)'  % (PROPERTY, _count), art.get('clearlogo',''))
-            _setProperty('%s.%d.Art(clearart)'   % (PROPERTY, _count), art.get('clearart',''))
-            _setProperty('%s.%d.Art(landscape)'  % (PROPERTY, _count), art.get('landscape',''))
-            _setProperty('%s.%d.Art(banner)'     % (PROPERTY, _count), art.get('banner',''))
-            _setProperty('%s.%d.Art(discart)'    % (PROPERTY, _count), art.get('discart',''))                
-            _setProperty('%s.%d.Resume'          % (PROPERTY, _count), resume)
-            _setProperty('%s.%d.PercentPlayed'   % (PROPERTY, _count), played)
-            _setProperty('%s.%d.Watched'         % (PROPERTY, _count), watched)
-            _setProperty('%s.%d.File'            % (PROPERTY, _count), _musicvid.get('file',''))
-            _setProperty('%s.%d.Path'            % (PROPERTY, _count), path)
-            _setProperty('%s.%d.Play'            % (PROPERTY, _count), play)
-            _setProperty('%s.%d.VideoCodec'      % (PROPERTY, _count), streaminfo['videocodec'])
-            _setProperty('%s.%d.VideoResolution' % (PROPERTY, _count), streaminfo['videoresolution'])
-            _setProperty('%s.%d.VideoAspect'     % (PROPERTY, _count), streaminfo['videoaspect'])
-            _setProperty('%s.%d.AudioCodec'      % (PROPERTY, _count), streaminfo['audiocodec'])
-            _setProperty('%s.%d.AudioChannels'   % (PROPERTY, _count), str(streaminfo['audiochannels']))
+            _setProperty('%s.%d.DBID'            % (_RALI_GLOBALS['PROPERTY'], _count), str(_musicvid.get('id')))
+            _setProperty('%s.%d.Title'           % (_RALI_GLOBALS['PROPERTY'], _count), _musicvid.get('title',''))
+            _setProperty('%s.%d.Year'            % (_RALI_GLOBALS['PROPERTY'], _count), str(_musicvid.get('year','')))
+            _setProperty('%s.%d.Genre'           % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_musicvid.get('genre','')))
+            _setProperty('%s.%d.Studio'          % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_musicvid.get('studio','')))
+            _setProperty('%s.%d.Artist'          % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_musicvid.get('artist','')))
+            _setProperty('%s.%d.Album'           % (_RALI_GLOBALS['PROPERTY'], _count), _musicvid.get('album',''))
+            _setProperty('%s.%d.Track'           % (_RALI_GLOBALS['PROPERTY'], _count), str(_musicvid.get('track','')))
+            _setProperty('%s.%d.Rating'          % (_RALI_GLOBALS['PROPERTY'], _count), str(_musicvid.get('rating','')))
+            _setProperty('%s.%d.UserRating'      % (_RALI_GLOBALS['PROPERTY'], _count), str(_musicvid.get('userrating','')))
+            _setProperty('%s.%d.Plot'            % (_RALI_GLOBALS['PROPERTY'], _count), _musicvid.get('plot',''))
+            _setProperty('%s.%d.Tag'             % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_musicvid.get('tag','')))
+            _setProperty('%s.%d.Runtime'         % (_RALI_GLOBALS['PROPERTY'], _count), runtime)
+            _setProperty('%s.%d.Runtimesecs'     % (_RALI_GLOBALS['PROPERTY'], _count), runtimesecs)
+            _setProperty('%s.%d.Director'        % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_musicvid.get('director','')))
+            _setProperty('%s.%d.Art(thumb)'      % (_RALI_GLOBALS['PROPERTY'], _count), art.get('thumb',''))
+            _setProperty('%s.%d.Art(poster)'     % (_RALI_GLOBALS['PROPERTY'], _count), art.get('poster',''))
+            _setProperty('%s.%d.Art(fanart)'     % (_RALI_GLOBALS['PROPERTY'], _count), art.get('fanart',''))
+            _setProperty('%s.%d.Art(clearlogo)'  % (_RALI_GLOBALS['PROPERTY'], _count), art.get('clearlogo',''))
+            _setProperty('%s.%d.Art(clearart)'   % (_RALI_GLOBALS['PROPERTY'], _count), art.get('clearart',''))
+            _setProperty('%s.%d.Art(landscape)'  % (_RALI_GLOBALS['PROPERTY'], _count), art.get('landscape',''))
+            _setProperty('%s.%d.Art(banner)'     % (_RALI_GLOBALS['PROPERTY'], _count), art.get('banner',''))
+            _setProperty('%s.%d.Art(discart)'    % (_RALI_GLOBALS['PROPERTY'], _count), art.get('discart',''))
+            _setProperty('%s.%d.Resume'          % (_RALI_GLOBALS['PROPERTY'], _count), resume)
+            _setProperty('%s.%d.PercentPlayed'   % (_RALI_GLOBALS['PROPERTY'], _count), played)
+            _setProperty('%s.%d.Watched'         % (_RALI_GLOBALS['PROPERTY'], _count), watched)
+            _setProperty('%s.%d.File'            % (_RALI_GLOBALS['PROPERTY'], _count), _musicvid.get('file',''))
+            _setProperty('%s.%d.Path'            % (_RALI_GLOBALS['PROPERTY'], _count), path)
+            _setProperty('%s.%d.Play'            % (_RALI_GLOBALS['PROPERTY'], _count), play)
+            _setProperty('%s.%d.VideoCodec'      % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videocodec'])
+            _setProperty('%s.%d.VideoResolution' % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videoresolution'])
+            _setProperty('%s.%d.VideoAspect'     % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videoaspect'])
+            _setProperty('%s.%d.AudioCodec'      % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['audiocodec'])
+            _setProperty('%s.%d.AudioChannels'   % (_RALI_GLOBALS['PROPERTY'], _count), str(streaminfo['audiochannels']))
 
-        if _count != LIMIT:
-            while _count < LIMIT:
+        if _count != _RALI_GLOBALS['LIMIT']:
+            while _count < _RALI_GLOBALS['LIMIT']:
                 _count += 1
-                _setProperty('%s.%d.Title' % (PROPERTY, _count), '')
+                _setProperty('%s.%d.Title' % (_RALI_GLOBALS['PROPERTY'], _count), '')
     else:
-        log('## PLAYLIST {} COULD NOT BE LOADED ##'.format(PLAYLIST))
-        log('JSON RESULT {}'.format(_json_pl_response))
+        log(f'## PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+        log(f'JSON RESULT {_json_pl_response}')
 
 
 def _getEpisodesFromPlaylist() -> None:
     """retrieves episodes playlist info from Kodi library and sets properties
 
     """
-    global LIMIT
-    global METHOD
-    global PLAYLIST
-    global RESUME
-    global REVERSE
-    global SORTBY
-    global UNWATCHED
-    global PROPERTY
     _result = []
     _total = 0
     _unwatched = 0
@@ -690,7 +664,7 @@ def _getEpisodesFromPlaylist() -> None:
                     '"firstaired", '
                     '"dateadded"] '
                 '}, '
-            '"id": 1}' % (PLAYLIST))
+            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
     else:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
@@ -717,7 +691,7 @@ def _getEpisodesFromPlaylist() -> None:
                     '"firstaired", '
                     '"dateadded"] '
                 '}, '
-            '"id": 1}' % (PLAYLIST))
+            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
     _json_pl_response = json.loads(_json_query)
     _files = _json_pl_response.get('result', {}).get('files')
     if _files:
@@ -794,8 +768,8 @@ def _getEpisodesFromPlaylist() -> None:
                         _total, _watched, _unwatched, _result = _watchedOrResume(
                             _total, _watched, _unwatched, _result, _episode)
                 else:
-                    log('## PLAYLIST {} COULD NOT BE LOADED ##'.format(PLAYLIST))
-                    log('JSON RESULT {}'.format(_json_response))
+                    log(f'## PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+                    log(f'JSON RESULT {_json_response}')
             if _file['type'] == 'episode':
                 _id = _file['tvshowid']
                 if _id not in _tvshowid:
@@ -807,15 +781,15 @@ def _getEpisodesFromPlaylist() -> None:
         _setVideoProperties(_total, _watched, _unwatched)
         _setTvShowsProperties(_tvshows)
         _count = 0
-        if METHOD == 'Last':
+        if _RALI_GLOBALS['METHOD'] == 'Last':
             _result = sorted(_result, key=itemgetter(
                 'dateadded'), reverse=True)
-        elif METHOD == 'Playlist':
-            _result = sorted(_result, key=itemgetter(SORTBY), reverse=REVERSE)
+        elif _RALI_GLOBALS['METHOD'] == 'Playlist':
+            _result = sorted(_result, key=itemgetter(_RALI_GLOBALS['SORTBY']), reverse=_RALI_GLOBALS['REVERSE'])
         else:
             random.shuffle(_result, random.random)
         for _episode in _result:
-            if MONITOR.abortRequested() or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             '''
@@ -825,13 +799,13 @@ def _getEpisodesFromPlaylist() -> None:
                 _tvshow = _json_pl_response.get('result', {}).get('tvshowdetails')
             '''
             _setEpisodeProperties(_episode, _count)
-        if _count != LIMIT:
-            while _count < LIMIT:
+        if _count != _RALI_GLOBALS['LIMIT']:
+            while _count < _RALI_GLOBALS['LIMIT']:
                 _count += 1
                 _setEpisodeProperties(None, _count)
     else:
-        log('# 01 # PLAYLIST {} COULD NOT BE LOADED ##'.format(PLAYLIST))
-        log('JSON RESULT {}'.format(_json_pl_response))
+        log(f'# 01 # PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+        log(f'JSON RESULT {_json_pl_response}')
 
 
 def _getEpisodes() -> None:
@@ -840,12 +814,6 @@ def _getEpisodes() -> None:
     Returns:
         None
     """
-    global LIMIT
-    global METHOD
-    global RESUME
-    global REVERSE
-    global SORTBY
-    global UNWATCHED
     _result = []
     _total = 0
     _unwatched = 0
@@ -922,39 +890,34 @@ def _getEpisodes() -> None:
         _setVideoProperties(_total, _watched, _unwatched)
         _setTvShowsProperties(_tvshows)
         _count = 0
-        if METHOD == 'Last':
+        if _RALI_GLOBALS['METHOD'] == 'Last':
             _result = sorted(_result, key=itemgetter(
                 'dateadded'), reverse=True)
-        elif METHOD == 'Playlist':
-            _result = sorted(_result, key=itemgetter(SORTBY), reverse=REVERSE)
+        elif _RALI_GLOBALS['METHOD'] == 'Playlist':
+            _result = sorted(_result, key=itemgetter(_RALI_GLOBALS['SORTBY']), reverse=_RALI_GLOBALS['REVERSE'])
         else:
             random.shuffle(_result, random.random)
         for _episode in _result:
-            if MONITOR.abortRequested() or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _setEpisodeProperties(_episode, _count)
-        if _count != LIMIT:
-            while _count < LIMIT:
+        if _count != _RALI_GLOBALS['LIMIT']:
+            while _count < _RALI_GLOBALS['LIMIT']:
                 _count += 1
                 _setEpisodeProperties(None, _count)
     else:
-        log('## PLAYLIST {} COULD NOT BE LOADED ##'.format(PLAYLIST))
+        log('## PLAYLIST {} COULD NOT BE LOADED ##'.format(_RALI_GLOBALS['PLAYLIST']))
         log('JSON RESULT {}'.format(_json_pl_response))
 
 
 def _getMusicFromPlaylist() -> None:
     """gets albums/songs from an album/songs playlist and retrieves libary data for them
 
-    The album details are provided as window properties.  If a playlist is not 
+    The album details are provided as window properties.  If a playlist is not
     provided uses library songs node.  Artist and mixed playlists not supported
     """
 
-    global LIMIT
-    global METHOD
-    global PLAYLIST
-    global REVERSE
-    global SORTBY
     _result = []
     _artists = 0
     _artistsid = []
@@ -964,10 +927,10 @@ def _getMusicFromPlaylist() -> None:
     _songs = 0
     _songslist = []
     # Request database using JSON
-    if PLAYLIST == '':
-        PLAYLIST = 'musicdb://songs/'
+    if _RALI_GLOBALS['PLAYLIST'] == '':
+        _RALI_GLOBALS['PLAYLIST'] = 'musicdb://songs/'
     #_json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "music", "properties": ["title", "description", "albumlabel", "artist", "genre", "year", "thumbnail", "fanart", "rating", "userrating", "playcount", "dateadded"]}, "id": 1}' %(PLAYLIST))
-    if METHOD == 'Random':
+    if _RALI_GLOBALS['METHOD'] == 'Random':
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
@@ -976,8 +939,8 @@ def _getMusicFromPlaylist() -> None:
                 '"media": "music", '
                 '"properties": ["dateadded"], '
                 '"sort": {"method": "random"}}, '
-            '"id": 1}' % (PLAYLIST))
-    elif METHOD == 'Last':
+            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+    elif _RALI_GLOBALS['METHOD'] == 'Last':
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
@@ -988,10 +951,10 @@ def _getMusicFromPlaylist() -> None:
                 '"sort": '
                     '{"order": "descending", '
                     '"method": "dateadded"}}, '
-            '"id": 1}' % (PLAYLIST))
-    elif METHOD == 'Playlist':
+            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+    elif _RALI_GLOBALS['METHOD'] == 'Playlist':
         order = 'ascending'
-        if REVERSE:
+        if _RALI_GLOBALS['REVERSE']:
             order = 'descending'
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
@@ -1003,7 +966,7 @@ def _getMusicFromPlaylist() -> None:
                 '"sort": '
                     '{"order": "%s", '
                     '"method": "%s"}}, '
-            '"id": 1}' % (PLAYLIST, order, SORTBY))
+            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST'], order, _RALI_GLOBALS['SORTBY']))
     else:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
@@ -1012,7 +975,7 @@ def _getMusicFromPlaylist() -> None:
                 '{"directory": "%s", '
                 '"media": "music", '
                 '"properties": ["dateadded"]}, '
-            '"id": 1}' % (PLAYLIST))
+            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
     _json_pl_response = json.loads(_json_query)
     # If request return some results
     _files: List[dict] = _json_pl_response.get('result', {}).get('files')
@@ -1030,7 +993,7 @@ def _getMusicFromPlaylist() -> None:
                     '"method":"AudioLibrary.GetSongs", '
                     '"params":'
                         '{"filter":{"albumid": %s}, '
-                        '"properties":["artistid"]}, ' 
+                        '"properties":["artistid"]}, '
                     '"id": 1}' % _albumid)
                 _json_pl_response = json.loads(_json_query)
                 _result = _json_pl_response.get('result', {}).get('songs')
@@ -1053,14 +1016,14 @@ def _getMusicFromPlaylist() -> None:
                 _albumsid.append(_albumid)
             '''
         _setMusicProperties(_artists, len(_files), _songs)
-        if METHOD == 'Last':
+        if _RALI_GLOBALS['METHOD'] == 'Last':
             _albumslist = sorted(
                 _albumslist, key=itemgetter('dateadded'), reverse=True)
         else:
             random.shuffle(_albumslist, random.random)
         _count = 0
         for _album in _albumslist:
-            if MONITOR.abortRequested() or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _albumid = _album['id']
@@ -1114,8 +1077,8 @@ def _getMusicFromPlaylist() -> None:
             _album: dict = _json_pl_response.get(
                 'result', {}).get('albumdetails')
             _setAlbumPROPERTIES(_album, _count)
-        if _count <= LIMIT:
-            while _count < LIMIT:
+        if _count <= _RALI_GLOBALS['LIMIT']:
+            while _count < _RALI_GLOBALS['LIMIT']:
                 _count += 1
                 _setAlbumPROPERTIES(None, _count)
     elif _files and _files[0].get('type') == 'song':
@@ -1183,24 +1146,24 @@ def _getMusicFromPlaylist() -> None:
                     _albums += 1
                     _albumslist.append(_result['albumid'])
         _setMusicProperties(_artists, _albums, len(_files))
-        if METHOD == 'Last':
+        if _RALI_GLOBALS['METHOD'] == 'Last':
             _songslist = sorted(_songslist, key=itemgetter(
                 'dateadded'), reverse=True)
         else:
             random.shuffle(_songslist, random.random)
         _count = 0
         for _song in _songslist:
-            if MONITOR.abortRequested() or _count == LIMIT:
+            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _setSongPROPERTIES(_song, _count)
-        if _count <= LIMIT:
-            while _count < LIMIT:
+        if _count <= _RALI_GLOBALS['LIMIT']:
+            while _count < _RALI_GLOBALS['LIMIT']:
                 _count += 1
                 _setSongPROPERTIES(None, _count)
     else:
-        log('## PLAYLIST {} COULD NOT BE LOADED ##'.format(PLAYLIST))
-        log('JSON RESULT {}'.format(_json_pl_response))
+        log(f'## PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+        log(f'JSON RESULT {_json_pl_response}')
 
 
 def _clearProperties() -> None:
@@ -1209,16 +1172,15 @@ def _clearProperties() -> None:
     Returns:
         None
     """
-    global WINDOW
     # Reset window Properties
-    WINDOW.clearProperty('%s.Loaded' % (PROPERTY))
-    WINDOW.clearProperty('%s.Count' % (PROPERTY))
-    WINDOW.clearProperty('%s.Watched' % (PROPERTY))
-    WINDOW.clearProperty('%s.Unwatched' % (PROPERTY))
-    WINDOW.clearProperty('%s.Artists' % (PROPERTY))
-    WINDOW.clearProperty('%s.Albums' % (PROPERTY))
-    WINDOW.clearProperty('%s.Songs' % (PROPERTY))
-    WINDOW.clearProperty('%s.Type' % (PROPERTY))
+    WINDOW.clearProperty('%s.Loaded' % (_RALI_GLOBALS['PROPERTY']))
+    WINDOW.clearProperty('%s.Count' % (_RALI_GLOBALS['PROPERTY']))
+    WINDOW.clearProperty('%s.Watched' % (_RALI_GLOBALS['PROPERTY']))
+    WINDOW.clearProperty('%s.Unwatched' % (_RALI_GLOBALS['PROPERTY']))
+    WINDOW.clearProperty('%s.Artists' % (_RALI_GLOBALS['PROPERTY']))
+    WINDOW.clearProperty('%s.Albums' % (_RALI_GLOBALS['PROPERTY']))
+    WINDOW.clearProperty('%s.Songs' % (_RALI_GLOBALS['PROPERTY']))
+    WINDOW.clearProperty('%s.Type' % (_RALI_GLOBALS['PROPERTY']))
 
 
 def _setMusicProperties(_artists: int, _albums: int, _songs: int) -> None:
@@ -1229,14 +1191,11 @@ def _setMusicProperties(_artists: int, _albums: int, _songs: int) -> None:
         _albums (int): number of albums
         _songs (int): number of songs
     """
-    global PROPERTY
-    global WINDOW
-    global TYPE
     # Set window Properties
-    _setProperty('%s.Artists' % (PROPERTY), str(_artists))
-    _setProperty('%s.Albums' % (PROPERTY), str(_albums))
-    _setProperty('%s.Songs' % (PROPERTY), str(_songs))
-    _setProperty('%s.Type' % (PROPERTY), TYPE)
+    _setProperty('%s.Artists' % (_RALI_GLOBALS['PROPERTY']), str(_artists))
+    _setProperty('%s.Albums' % (_RALI_GLOBALS['PROPERTY']), str(_albums))
+    _setProperty('%s.Songs' % (_RALI_GLOBALS['PROPERTY']), str(_songs))
+    _setProperty('%s.Type' % (_RALI_GLOBALS['PROPERTY']), _RALI_GLOBALS['TYPE'])
 
 
 def _setVideoProperties(_total: int, _watched: int, _unwatched: int) -> None:
@@ -1247,14 +1206,11 @@ def _setVideoProperties(_total: int, _watched: int, _unwatched: int) -> None:
         _watched (int): Subtotal items watched
         _unwatched (int): Subtotal items unwatched
     """
-    global PROPERTY
-    global WINDOW
-    global TYPE
     # Set window Properties
-    _setProperty('%s.Count' % (PROPERTY), str(_total))
-    _setProperty('%s.Watched' % (PROPERTY), str(_watched))
-    _setProperty('%s.Unwatched' % (PROPERTY), str(_unwatched))
-    _setProperty('%s.Type' % (PROPERTY), TYPE)
+    _setProperty('%s.Count' % (_RALI_GLOBALS['PROPERTY']), str(_total))
+    _setProperty('%s.Watched' % (_RALI_GLOBALS['PROPERTY']), str(_watched))
+    _setProperty('%s.Unwatched' % (_RALI_GLOBALS['PROPERTY']), str(_unwatched))
+    _setProperty('%s.Type' % (_RALI_GLOBALS['PROPERTY']), _RALI_GLOBALS['TYPE'])
 
 
 def _setTvShowsProperties(_tvshows) -> None:
@@ -1263,10 +1219,8 @@ def _setTvShowsProperties(_tvshows) -> None:
     Args:
         _tvshows(_type_): _description_
     """
-    global PROPERTY
-    global WINDOW
     # Set window Properties
-    _setProperty('%s.TvShows' % (PROPERTY), str(_tvshows))
+    _setProperty('%s.TvShows' % (_RALI_GLOBALS['PROPERTY']), str(_tvshows))
 
 
 def _setEpisodeProperties(_episode, _count) -> None:
@@ -1310,52 +1264,51 @@ def _setEpisodeProperties(_episode, _count) -> None:
         runtime = str(int((_episode['runtime'] / 60) + 0.5))
         streaminfo = media_streamdetails(_episode['file'].lower(),
                                          _episode['streamdetails'])
-        _setProperty('%s.%d.DBID'                  % (PROPERTY, _count), str(_episode.get('id')))
-        _setProperty('%s.%d.Title'                 % (PROPERTY, _count), _episode.get('title',''))
-        _setProperty('%s.%d.Episode'               % (PROPERTY, _count), episode)
-        _setProperty('%s.%d.EpisodeNo'             % (PROPERTY, _count), episodeno)
-        _setProperty('%s.%d.Season'                % (PROPERTY, _count), season)
-        _setProperty('%s.%d.Plot'                  % (PROPERTY, _count), _episode.get('plot',''))
-        _setProperty('%s.%d.TVshowTitle'           % (PROPERTY, _count), _episode.get('showtitle',''))
-        _setProperty('%s.%d.Rating'                % (PROPERTY, _count), rating)
-        _setProperty('%s.%d.UserRating'            % (PROPERTY, _count), userrating)
-        _setProperty('%s.%d.Art(thumb)'            % (PROPERTY, _count), art.get('thumb',''))
-        _setProperty('%s.%d.Art(tvshow.fanart)'    % (PROPERTY, _count), art.get('tvshow.fanart',''))
-        _setProperty('%s.%d.Art(tvshow.poster)'    % (PROPERTY, _count), art.get('tvshow.poster',''))
-        _setProperty('%s.%d.Art(tvshow.banner)'    % (PROPERTY, _count), art.get('tvshow.banner',''))
-        _setProperty('%s.%d.Art(tvshow.clearlogo)' % (PROPERTY, _count), art.get('tvshow.clearlogo',''))
-        _setProperty('%s.%d.Art(tvshow.clearart)'  % (PROPERTY, _count), art.get('tvshow.clearart',''))
-        _setProperty('%s.%d.Art(tvshow.landscape)' % (PROPERTY, _count), art.get('tvshow.landscape',''))
-        _setProperty('%s.%d.Art(fanart)'           % (PROPERTY, _count), art.get('tvshow.fanart',''))
-        _setProperty('%s.%d.Art(poster)'           % (PROPERTY, _count), art.get('tvshow.poster',''))
-        _setProperty('%s.%d.Art(banner)'           % (PROPERTY, _count), art.get('tvshow.banner',''))
-        _setProperty('%s.%d.Art(clearlogo)'        % (PROPERTY, _count), art.get('tvshow.clearlogo',''))
-        _setProperty('%s.%d.Art(clearart)'         % (PROPERTY, _count), art.get('tvshow.clearart',''))
-        _setProperty('%s.%d.Art(landscape)'        % (PROPERTY, _count), art.get('tvshow.landscape',''))
-        _setProperty('%s.%d.Resume'                % (PROPERTY, _count), resume)
-        _setProperty('%s.%d.Watched'               % (PROPERTY, _count), _episode.get('watched',''))
-        _setProperty('%s.%d.Runtime'               % (PROPERTY, _count), runtime)
-        _setProperty('%s.%d.Premiered'             % (PROPERTY, _count), _episode.get('firstaired',''))
-        _setProperty('%s.%d.PercentPlayed'         % (PROPERTY, _count), played)
-        _setProperty('%s.%d.File'                  % (PROPERTY, _count), _episode.get('file',''))
-        _setProperty('%s.%d.MPAA'                  % (PROPERTY, _count), _episode.get('mpaa',''))
-        _setProperty('%s.%d.Studio'                % (PROPERTY, _count), ' / '.join(_episode.get('studio','')))
-        _setProperty('%s.%d.Path'                  % (PROPERTY, _count), path)
-        _setProperty('%s.%d.Play'                  % (PROPERTY, _count), play)
-        _setProperty('%s.%d.VideoCodec'            % (PROPERTY, _count), streaminfo['videocodec'])
-        _setProperty('%s.%d.VideoResolution'       % (PROPERTY, _count), streaminfo['videoresolution'])
-        _setProperty('%s.%d.VideoAspect'           % (PROPERTY, _count), streaminfo['videoaspect'])
-        _setProperty('%s.%d.AudioCodec'            % (PROPERTY, _count), streaminfo['audiocodec'])
-        _setProperty('%s.%d.AudioChannels'         % (PROPERTY, _count), str(streaminfo['audiochannels']))
+        _setProperty('%s.%d.DBID'                  % (_RALI_GLOBALS['PROPERTY'], _count), str(_episode.get('id')))
+        _setProperty('%s.%d.Title'                 % (_RALI_GLOBALS['PROPERTY'], _count), _episode.get('title',''))
+        _setProperty('%s.%d.Episode'               % (_RALI_GLOBALS['PROPERTY'], _count), episode)
+        _setProperty('%s.%d.EpisodeNo'             % (_RALI_GLOBALS['PROPERTY'], _count), episodeno)
+        _setProperty('%s.%d.Season'                % (_RALI_GLOBALS['PROPERTY'], _count), season)
+        _setProperty('%s.%d.Plot'                  % (_RALI_GLOBALS['PROPERTY'], _count), _episode.get('plot',''))
+        _setProperty('%s.%d.TVshowTitle'           % (_RALI_GLOBALS['PROPERTY'], _count), _episode.get('showtitle',''))
+        _setProperty('%s.%d.Rating'                % (_RALI_GLOBALS['PROPERTY'], _count), rating)
+        _setProperty('%s.%d.UserRating'            % (_RALI_GLOBALS['PROPERTY'], _count), userrating)
+        _setProperty('%s.%d.Art(thumb)'            % (_RALI_GLOBALS['PROPERTY'], _count), art.get('thumb',''))
+        _setProperty('%s.%d.Art(tvshow.fanart)'    % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.fanart',''))
+        _setProperty('%s.%d.Art(tvshow.poster)'    % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.poster',''))
+        _setProperty('%s.%d.Art(tvshow.banner)'    % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.banner',''))
+        _setProperty('%s.%d.Art(tvshow.clearlogo)' % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.clearlogo',''))
+        _setProperty('%s.%d.Art(tvshow.clearart)'  % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.clearart',''))
+        _setProperty('%s.%d.Art(tvshow.landscape)' % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.landscape',''))
+        _setProperty('%s.%d.Art(fanart)'           % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.fanart',''))
+        _setProperty('%s.%d.Art(poster)'           % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.poster',''))
+        _setProperty('%s.%d.Art(banner)'           % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.banner',''))
+        _setProperty('%s.%d.Art(clearlogo)'        % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.clearlogo',''))
+        _setProperty('%s.%d.Art(clearart)'         % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.clearart',''))
+        _setProperty('%s.%d.Art(landscape)'        % (_RALI_GLOBALS['PROPERTY'], _count), art.get('tvshow.landscape',''))
+        _setProperty('%s.%d.Resume'                % (_RALI_GLOBALS['PROPERTY'], _count), resume)
+        _setProperty('%s.%d.Watched'               % (_RALI_GLOBALS['PROPERTY'], _count), _episode.get('watched',''))
+        _setProperty('%s.%d.Runtime'               % (_RALI_GLOBALS['PROPERTY'], _count), runtime)
+        _setProperty('%s.%d.Premiered'             % (_RALI_GLOBALS['PROPERTY'], _count), _episode.get('firstaired',''))
+        _setProperty('%s.%d.PercentPlayed'         % (_RALI_GLOBALS['PROPERTY'], _count), played)
+        _setProperty('%s.%d.File'                  % (_RALI_GLOBALS['PROPERTY'], _count), _episode.get('file',''))
+        _setProperty('%s.%d.MPAA'                  % (_RALI_GLOBALS['PROPERTY'], _count), _episode.get('mpaa',''))
+        _setProperty('%s.%d.Studio'                % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_episode.get('studio','')))
+        _setProperty('%s.%d.Path'                  % (_RALI_GLOBALS['PROPERTY'], _count), path)
+        _setProperty('%s.%d.Play'                  % (_RALI_GLOBALS['PROPERTY'], _count), play)
+        _setProperty('%s.%d.VideoCodec'            % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videocodec'])
+        _setProperty('%s.%d.VideoResolution'       % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videoresolution'])
+        _setProperty('%s.%d.VideoAspect'           % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videoaspect'])
+        _setProperty('%s.%d.AudioCodec'            % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['audiocodec'])
+        _setProperty('%s.%d.AudioChannels'         % (_RALI_GLOBALS['PROPERTY'], _count), str(streaminfo['audiochannels']))
 
     else:
-         _setProperty('%s.%d.Title'               % (PROPERTY, _count), '')
+        _setProperty('%s.%d.Title'               % (_RALI_GLOBALS['PROPERTY'], _count), '')
 
 
 def _setAlbumPROPERTIES(_album: dict, _count: int) -> None:
     """Sets the window properties for playlist albums
     """
-    global PROPERTY
     if _album:
         # Set window Properties
         _rating = str(_album['rating'])
@@ -1368,30 +1321,29 @@ def _setAlbumPROPERTIES(_album: dict, _count: int) -> None:
         play = 'RunScript(' + __addonid__ + ',albumid=' + \
             str(_album.get('albumid')) + ')'
         path = 'musicdb://albums/' + str(_album.get('albumid')) + '/'
-        _setProperty('%s.%d.Title'       % (PROPERTY, _count), _album.get('title',''))
-        _setProperty('%s.%d.Artist'      % (PROPERTY, _count), ' / '.join(_album.get('artist','')))
-        _setProperty('%s.%d.Genre'       % (PROPERTY, _count), ' / '.join(_album.get('genre','')))
-        _setProperty('%s.%d.Theme'       % (PROPERTY, _count), ' / '.join(_album.get('theme','')))
-        _setProperty('%s.%d.Mood'        % (PROPERTY, _count), ' / '.join(_album.get('mood','')))
-        _setProperty('%s.%d.Style'       % (PROPERTY, _count), ' / '.join(_album.get('style','')))
-        _setProperty('%s.%d.Type'        % (PROPERTY, _count), _album.get('type',''))
-        _setProperty('%s.%d.Year'        % (PROPERTY, _count), str(_album.get('year','')))
-        _setProperty('%s.%d.RecordLabel' % (PROPERTY, _count), _album.get('albumlabel',''))
-        _setProperty('%s.%d.Description' % (PROPERTY, _count), _album.get('description',''))
-        _setProperty('%s.%d.Rating'      % (PROPERTY, _count), _rating)
-        _setProperty('%s.%d.UserRating'  % (PROPERTY, _count), _userrating)
-        _setProperty('%s.%d.Art(thumb)'  % (PROPERTY, _count), _album.get('thumbnail',''))
-        _setProperty('%s.%d.Art(fanart)' % (PROPERTY, _count), _album.get('fanart',''))
-        _setProperty('%s.%d.Play'        % (PROPERTY, _count), play)
-        _setProperty('%s.%d.LibraryPath' % (PROPERTY, _count), path)
+        _setProperty('%s.%d.Title'       % (_RALI_GLOBALS['PROPERTY'], _count), _album.get('title',''))
+        _setProperty('%s.%d.Artist'      % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_album.get('artist','')))
+        _setProperty('%s.%d.Genre'       % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_album.get('genre','')))
+        _setProperty('%s.%d.Theme'       % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_album.get('theme','')))
+        _setProperty('%s.%d.Mood'        % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_album.get('mood','')))
+        _setProperty('%s.%d.Style'       % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_album.get('style','')))
+        _setProperty('%s.%d.Type'        % (_RALI_GLOBALS['PROPERTY'], _count), _album.get('type',''))
+        _setProperty('%s.%d.Year'        % (_RALI_GLOBALS['PROPERTY'], _count), str(_album.get('year','')))
+        _setProperty('%s.%d.RecordLabel' % (_RALI_GLOBALS['PROPERTY'], _count), _album.get('albumlabel',''))
+        _setProperty('%s.%d.Description' % (_RALI_GLOBALS['PROPERTY'], _count), _album.get('description',''))
+        _setProperty('%s.%d.Rating'      % (_RALI_GLOBALS['PROPERTY'], _count), _rating)
+        _setProperty('%s.%d.UserRating'  % (_RALI_GLOBALS['PROPERTY'], _count), _userrating)
+        _setProperty('%s.%d.Art(thumb)'  % (_RALI_GLOBALS['PROPERTY'], _count), _album.get('thumbnail',''))
+        _setProperty('%s.%d.Art(fanart)' % (_RALI_GLOBALS['PROPERTY'], _count), _album.get('fanart',''))
+        _setProperty('%s.%d.Play'        % (_RALI_GLOBALS['PROPERTY'], _count), play)
+        _setProperty('%s.%d.LibraryPath' % (_RALI_GLOBALS['PROPERTY'], _count), path)
     else:
-        _setProperty('%s.%d.Title'       % (PROPERTY, _count), '')
+        _setProperty('%s.%d.Title'       % (_RALI_GLOBALS['PROPERTY'], _count), '')
 
 
 def _setSongPROPERTIES(_song: dict, _count: int) -> None:
     """Sets the window properties for playlist songs
     """
-    global PROPERTY
     if _song:
         # Set window Properties
         _rating = str(_song['rating'])
@@ -1404,19 +1356,19 @@ def _setSongPROPERTIES(_song: dict, _count: int) -> None:
         play = 'RunScript(' + __addonid__ + ',songid=' + \
             str(_song.get('songid')) + ')'
         path = 'musicdb://songs/' + str(_song.get('songid')) + '/'
-        _setProperty('%s.%d.Title'       % (PROPERTY, _count), _song.get('title',''))
-        _setProperty('%s.%d.Artist'      % (PROPERTY, _count), ' / '.join(_song.get('artist','')))
-        _setProperty('%s.%d.Genre'       % (PROPERTY, _count), ' / '.join(_song.get('genre','')))
-        _setProperty('%s.%d.Year'        % (PROPERTY, _count), str(_song.get('year','')))
-        _setProperty('%s.%d.Description' % (PROPERTY, _count), _song.get('comment',''))
-        _setProperty('%s.%d.Rating'      % (PROPERTY, _count), _rating)
-        _setProperty('%s.%d.UserRating'  % (PROPERTY, _count), _userrating)
-        _setProperty('%s.%d.Art(thumb)'  % (PROPERTY, _count), _song.get('thumbnail',''))
-        _setProperty('%s.%d.Art(fanart)' % (PROPERTY, _count), _song.get('fanart',''))
-        _setProperty('%s.%d.Play'        % (PROPERTY, _count), play)
-        _setProperty('%s.%d.LibraryPath' % (PROPERTY, _count), path)
+        _setProperty('%s.%d.Title'       % (_RALI_GLOBALS['PROPERTY'], _count), _song.get('title',''))
+        _setProperty('%s.%d.Artist'      % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_song.get('artist','')))
+        _setProperty('%s.%d.Genre'       % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_song.get('genre','')))
+        _setProperty('%s.%d.Year'        % (_RALI_GLOBALS['PROPERTY'], _count), str(_song.get('year','')))
+        _setProperty('%s.%d.Description' % (_RALI_GLOBALS['PROPERTY'], _count), _song.get('comment',''))
+        _setProperty('%s.%d.Rating'      % (_RALI_GLOBALS['PROPERTY'], _count), _rating)
+        _setProperty('%s.%d.UserRating'  % (_RALI_GLOBALS['PROPERTY'], _count), _userrating)
+        _setProperty('%s.%d.Art(thumb)'  % (_RALI_GLOBALS['PROPERTY'], _count), _song.get('thumbnail',''))
+        _setProperty('%s.%d.Art(fanart)' % (_RALI_GLOBALS['PROPERTY'], _count), _song.get('fanart',''))
+        _setProperty('%s.%d.Play'        % (_RALI_GLOBALS['PROPERTY'], _count), play)
+        _setProperty('%s.%d.LibraryPath' % (_RALI_GLOBALS['PROPERTY'], _count), path)
     else:
-        _setProperty('%s.%d.Title'       % (PROPERTY, _count), '')
+        _setProperty('%s.%d.Title'       % (_RALI_GLOBALS['PROPERTY'], _count), '')
 
 
 def _setProperty(_property: str, _value: str) -> None:
@@ -1477,40 +1429,32 @@ def _parse_argv() -> None:
             '"params": { "item": { "songid": %d } }, '
             '"id": 1 }' % int(params.get("songid")))
     else:
-        global METHOD
-        global MENU
-        global LIMIT
-        global PLAYLIST
-        global PROPERTY
-        global RESUME
-        global TYPE
-        global UNWATCHED
         # Extract parameters
         for arg in sys.argv:
             param = str(arg)
             if 'limit=' in param:
-                LIMIT = int(param.replace('limit=', ''))
+                _RALI_GLOBALS['LIMIT'] = int(param.replace('limit=', ''))
             elif 'menu=' in param:
-                MENU = param.replace('menu=', '')
+                _RALI_GLOBALS['MENU'] = param.replace('menu=', '')
             elif 'method=' in param:
-                METHOD = param.replace('method=', '')
+                _RALI_GLOBALS['METHOD'] = param.replace('method=', '')
             elif 'playlist=' in param:
-                PLAYLIST = param.replace('playlist=', '')
-                PLAYLIST = PLAYLIST.replace('"', '')
+                _RALI_GLOBALS['PLAYLIST'] = param.replace('playlist=', '')
+                _RALI_GLOBALS['PLAYLIST'] = _RALI_GLOBALS['PLAYLIST'].replace('"', '')
             elif 'property=' in param:
-                PROPERTY = param.replace('property=', '')
+                _RALI_GLOBALS['PROPERTY'] = param.replace('property=', '')
             elif 'type=' in param:
-                TYPE = param.replace('type=', '')
+                _RALI_GLOBALS['TYPE'] = param.replace('type=', '')
             elif 'unwatched=' in param:
-                UNWATCHED = param.replace('unwatched=', '')
-                if UNWATCHED == '':
-                    UNWATCHED = 'False'
+                _RALI_GLOBALS['UNWATCHED'] = param.replace('unwatched=', '')
+                if _RALI_GLOBALS['UNWATCHED'] == '':
+                    _RALI_GLOBALS['UNWATCHED'] = 'False'
             elif 'resume=' in param:
                 RESUME = param.replace('resume=', '')
-        if PLAYLIST != '' and xbmcvfs.exists(xbmcvfs.translatePath(PLAYLIST)):
+        if _RALI_GLOBALS['PLAYLIST'] != '' and xbmcvfs.exists(xbmcvfs.translatePath(_RALI_GLOBALS['PLAYLIST'])):
             _getPlaylistType()
-        if PROPERTY == '':
-            PROPERTY = 'Playlist%s%s%s' % (METHOD, TYPE, MENU)
+        if _RALI_GLOBALS['PROPERTY'] == '':
+            _RALI_GLOBALS['PROPERTY'] = f'Playlist{_RALI_GLOBALS["METHOD"]}{_RALI_GLOBALS["TYPE"]}{_RALI_GLOBALS["MENU"]}'
 
 
 def media_streamdetails(filename: str, streamdetails: dict) -> dict:
@@ -1612,21 +1556,22 @@ _parse_argv()
 # Clear Properties for playlist PROPERTY from _parse_argv()
 _clearProperties()
 # Get movies and fill Properties
-if TYPE == 'Movie':
+if _RALI_GLOBALS['TYPE'] == 'Movie':
     _getMovies()
-elif TYPE == 'Episode':
-    if PLAYLIST == '':
+elif _RALI_GLOBALS['TYPE'] == 'Episode':
+    if _RALI_GLOBALS['PLAYLIST'] == '':
         _getEpisodes()
     else:
         _getEpisodesFromPlaylist()
-elif TYPE == 'Music':
+elif _RALI_GLOBALS['TYPE'] == 'Music':
     _getMusicFromPlaylist()
-elif TYPE == 'MusicVideo':
+elif _RALI_GLOBALS['TYPE'] == 'MusicVideo':
     _getMusicVideosFromPlaylist()
-if TYPE != 'Invalid':
+if _RALI_GLOBALS['TYPE'] != 'Invalid':
     # skin can check this to verify properties available
-    WINDOW.setProperty('{}.Loaded'.format(PROPERTY), 'true')
-    log('Loading Playlist{0}{1}{2} started at {3} and took {4} (Nexus {5})'.format(METHOD, TYPE, MENU, time.strftime(
-        '%Y-%m-%d %H:%M:%S', time.localtime(START_TIME)), _timeTook(START_TIME), JSON_RPC_NEXUS))
+    WINDOW.setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Loaded', 'true')
+    log(f'Loading Playlist{_RALI_GLOBALS["METHOD"]}{_RALI_GLOBALS["TYPE"]}{_RALI_GLOBALS["MENU"]} '
+    f'started at {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(START_TIME))} '
+    f'and took {_timeTook(START_TIME)} (Nexus {JSON_RPC_NEXUS})')
 else:
-    log('Unable to process the {}{} playlist'.format(METHOD, MENU))
+    log(f'Unable to process the {_RALI_GLOBALS["METHOD"]}{_RALI_GLOBALS["MENU"]} playlist')

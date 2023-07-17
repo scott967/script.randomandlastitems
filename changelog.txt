@@ -1,3 +1,6 @@
+v3.0.0
+- refactored script for better maintainability.
+
 v2.2.2+matrix.6
 - Python 3
 - Matrix compatibility 
