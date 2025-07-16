@@ -30,7 +30,6 @@ from xml.dom.minidom import parse
 
 import xbmc
 import xbmcaddon
-import xbmcgui
 import xbmcvfs
 from xbmcgui import Window
 
@@ -78,7 +77,7 @@ def _getPlaylistType() -> None:
         Returns:  None
     """
     _doc = parse(xbmcvfs.translatePath(_RALI_GLOBALS['PLAYLIST']))
-    _type = _doc.getElementsByTagName('smartplaylist')[0].attributes.item(0).nodeValue # type: ignore
+    _type = _doc.getElementsByTagName('smartplaylist')[0].attributes.getNamedItem('type').nodeValue # type: ignore
     if _type == 'movies':
         _RALI_GLOBALS['TYPE'] = 'Movie'
     if _type == 'musicvideos':
@@ -101,7 +100,7 @@ def _getPlaylistType() -> None:
     if _RALI_GLOBALS['METHOD'] == 'Playlist':
         if _doc.getElementsByTagName('order'):
             _RALI_GLOBALS['SORTBY'] = _doc.getElementsByTagName('order')[0].firstChild.nodeValue
-            if _doc.getElementsByTagName('order')[0].attributes.item(0).nodeValue == 'descending':
+            if _doc.getElementsByTagName('order')[0].attributes.getNamedItem('direction').nodeValue == 'descending':
                 _RALI_GLOBALS['REVERSE'] = True
         else:
             _RALI_GLOBALS['METHOD'] = ''
@@ -116,7 +115,7 @@ def _timeTook(t: float) -> str:
     Returns:
         str: elapsed time to .001 sec
     """
-    t = (time.time() - t)
+    t = time.time() - t
     if t >= 60:
         return '%.3fm' % (t / 60.0)
     return '%.3fs' % (t)
@@ -176,7 +175,7 @@ def _getMovies() -> None:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
-            '"params": {"directory": "%s", '
+            f'"params": {{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
                 '"media": "video", '
                 '"properties": '
                     '["title", '
@@ -202,12 +201,12 @@ def _getMovies() -> None:
                     '"director", '
                     '"dateadded"]'
                 '}, '
-            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+            '"id": 1}')
     else:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
-            '"params": {"directory": "%s", '
+            f'"params": {{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
                 '"media": "video", '
                 '"properties": '
                     '["title", '
@@ -232,21 +231,21 @@ def _getMovies() -> None:
                     '"director", '
                     '"dateadded"]'
                 '}, '
-            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+            '"id": 1}')
     _json_pl_response: dict = json.loads(_json_query)
     # If request return some results
     _files: dict = _json_pl_response.get('result', {}).get('files')
     if _files:
         for _item in _files:
             if MONITOR.abortRequested():
-                break
+                return
             if _item['filetype'] == 'directory':
                 if JSON_RPC_NEXUS:
                     _json_query = xbmc.executeJSONRPC(
                         '{"jsonrpc": "2.0", '
                         '"method": "Files.GetDirectory", '
                             '"params": '
-                                '{"directory": "%s", '
+                                f'{{"directory": "{_item['''file''']}", '
                                 '"media": "video", '
                                 '"properties": '
                                     '["title", '
@@ -272,13 +271,13 @@ def _getMovies() -> None:
                                     '"director", '
                                     '"dateadded"]'
                                 '}, '
-                            '"id": 1}' % (_item['file']))
+                            '"id": 1}')
                 else:
                     _json_query = xbmc.executeJSONRPC(
                         '{"jsonrpc": "2.0", '
                         '"method": "Files.GetDirectory", '
                             '"params": '
-                                '{"directory": "%s", '
+                                f'{{"directory": "{_item['''file''']}", '
                                 '"media": "video", '
                                 '"properties": '
                                     '["title", '
@@ -303,7 +302,7 @@ def _getMovies() -> None:
                                     '"director", '
                                     '"dateadded"]'
                                 '}, '
-                            '"id": 1}' % (_item['file']))
+                            '"id": 1}')
                 _json_set_response: dict = json.loads(_json_query)
                 _movies: List[dict] = _json_set_response.get(
                     'result', {}).get('files') or []
@@ -312,7 +311,7 @@ def _getMovies() -> None:
                     log(f'JSON RESULT {_json_set_response}')
                 for _movie in _movies:
                     if MONITOR.abortRequested():
-                        break
+                        return
                     _playcount: int = _movie['playcount']
                     if _RALI_GLOBALS['RESUME'] == 'True':
                         _resume: int = _movie['resume']['position']
@@ -352,15 +351,17 @@ def _getMovies() -> None:
         else:
             random.shuffle(_result)
         for _movie in _result:
-            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
+            if MONITOR.abortRequested():
+                return
+            if _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _json_query = xbmc.executeJSONRPC(
                 '{"jsonrpc": "2.0", '
                     '"method": "VideoLibrary.GetMovieDetails", '
                     '"params": '
-                        '{"properties": ["streamdetails"], "movieid":%s }, '
-                    '"id": 1}' % (_movie['id']))
+                        f'{{"properties": ["streamdetails"], "movieid":{_movie['''id''']}}}, '
+                    '"id": 1}')
             _json_query = json.loads(_json_query)
             if 'result' in _json_query and 'moviedetails' in _json_query['result']:
                 item = _json_query['result']['moviedetails']
@@ -453,7 +454,7 @@ def _getMusicVideosFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
                 '"method": "Files.GetDirectory", '
                 '"params": '
-                    '{"directory": "%s", '
+                    f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
                     '"media": "video", '
                     '"properties": '
                         '["title", '
@@ -477,13 +478,13 @@ def _getMusicVideosFromPlaylist() -> None:
                         '"director", '
                         '"dateadded"]'
                     '}, '
-                '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+                '"id": 1}')
     else:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
                 '"method": "Files.GetDirectory", '
                 '"params": '
-                    '{"directory": "%s", '
+                    f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
                     '"media": "video", '
                     '"properties": '
                         '["title", '
@@ -506,14 +507,14 @@ def _getMusicVideosFromPlaylist() -> None:
                         '"director", '
                         '"dateadded"]'
                     '}, '
-                '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+                '"id": 1}')
     _json_pl_response: dict = json.loads(_json_query)
     # If request return some results
     _files = _json_pl_response.get('result', {}).get('files')
     if _files:
         for _item in _files:
             if MONITOR.abortRequested():
-                break
+                return
             _playcount = _item['playcount']
             if _RALI_GLOBALS['RESUME'] == 'True':
                 _resume = _item['resume']['position']
@@ -538,15 +539,17 @@ def _getMusicVideosFromPlaylist() -> None:
         else:
             random.shuffle(_result)
         for _musicvid in _result:
-            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
+            if MONITOR.abortRequested():
+                return
+            if _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _json_query = xbmc.executeJSONRPC(
                 '{"jsonrpc": "2.0", '
                     '"method": "VideoLibrary.GetMusicVideoDetails", '
                     '"params": '
-                    '{"properties": ["streamdetails"], "musicvideoid":%s }, '
-                    '"id": 1}' % (_musicvid['id']))
+                    f'{{"properties": ["streamdetails"], "musicvideoid":{_musicvid['''id''']} }}, '
+                    '"id": 1}')
             _json_query = json.loads(_json_query)
             if 'musicvideodetails' in _json_query['result']:
                 item = _json_query['result']['musicvideodetails']
@@ -641,7 +644,7 @@ def _getEpisodesFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                '{"directory": "%s", '
+                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
                 '"media": "video", '
                 '"properties": '
                     '["title", '
@@ -663,13 +666,13 @@ def _getEpisodesFromPlaylist() -> None:
                     '"firstaired", '
                     '"dateadded"] '
                 '}, '
-            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+            '"id": 1}')
     else:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                '{"directory": "%s", '
+                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
                 '"media": "video", '
                 '"properties": '
                     '["title", '
@@ -690,13 +693,13 @@ def _getEpisodesFromPlaylist() -> None:
                     '"firstaired", '
                     '"dateadded"] '
                 '}, '
-            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+            '"id": 1}')
     _json_pl_response = json.loads(_json_query)
     _files = _json_pl_response.get('result', {}).get('files')
     if _files:
         for _file in _files:
             if MONITOR.abortRequested():
-                break
+                return
             if _file['type'] == 'tvshow':
                 _tvshows += 1
                 # Playlist return TV Shows - Need to get episodes
@@ -705,7 +708,7 @@ def _getEpisodesFromPlaylist() -> None:
                         '{"jsonrpc": "2.0", '
                         '"method": "VideoLibrary.GetEpisodes", '
                         '"params": '
-                            '{ "tvshowid": %s, '
+                            f'{{ "tvshowid": {_file['''id''']}, '
                             '"properties": '
                                 '["title", '
                                 '"playcount", '
@@ -724,13 +727,13 @@ def _getEpisodesFromPlaylist() -> None:
                                 '"firstaired", '
                                 '"dateadded"] '
                             '}, '
-                        '"id": 1}' % (_file['id']))
+                        '"id": 1}')
                 else:
                     _json_query = xbmc.executeJSONRPC(
                         '{"jsonrpc": "2.0", '
                         '"method": "VideoLibrary.GetEpisodes", '
                         '"params": '
-                            '{ "tvshowid": %s, '
+                            f'{{ "tvshowid": {_file['''id''']}, '
                             '"properties": '
                                 '["title", '
                                 '"playcount", '
@@ -748,13 +751,13 @@ def _getEpisodesFromPlaylist() -> None:
                                 '"firstaired", '
                                 '"dateadded"] '
                             '}, '
-                        '"id": 1}' % (_file['id']))
+                        '"id": 1}')
                 _json_response = json.loads(_json_query)
                 _episodes = _json_response.get('result', {}).get('episodes')
                 if _episodes:
                     for _episode in _episodes:
                         if MONITOR.abortRequested():
-                            break
+                            return
                         # Add TV Show fanart and thumbnail for each episode
                         art = _episode['art']
                         # Add episode ID when playlist type is TVShow
@@ -788,7 +791,9 @@ def _getEpisodesFromPlaylist() -> None:
         else:
             random.shuffle(_result)
         for _episode in _result:
-            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
+            if MONITOR.abortRequested():
+                return
+            if _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             '''
@@ -877,7 +882,7 @@ def _getEpisodes() -> None:
     if _episodes:
         for _item in _episodes:
             if MONITOR.abortRequested():
-                break
+                return
             _id = _item['tvshowid']
             if _id not in _tvshowid:
                 _tvshows += 1
@@ -897,7 +902,9 @@ def _getEpisodes() -> None:
         else:
             random.shuffle(_result)
         for _episode in _result:
-            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
+            if MONITOR.abortRequested():
+                return
+            if _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _setEpisodeProperties(_episode, _count)
@@ -906,8 +913,8 @@ def _getEpisodes() -> None:
                 _count += 1
                 _setEpisodeProperties(None, _count)
     else:
-        log('## PLAYLIST {} COULD NOT BE LOADED ##'.format(_RALI_GLOBALS['PLAYLIST']))
-        log('JSON RESULT {}'.format(_json_pl_response))
+        log(f'## PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+        log(f'JSON RESULT {_json_pl_response}')
 
 
 def _getMusicFromPlaylist() -> None:
@@ -934,23 +941,23 @@ def _getMusicFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                '{"directory": "%s", '
+                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
                 '"media": "music", '
                 '"properties": ["dateadded"], '
                 '"sort": {"method": "random"}}, '
-            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+            '"id": 1}')
     elif _RALI_GLOBALS['METHOD'] == 'Last':
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                '{"directory": "%s", '
+                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
                 '"media": "music", '
                 '"properties": ["dateadded"], '
                 '"sort": '
                     '{"order": "descending", '
                     '"method": "dateadded"}}, '
-            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+            '"id": 1}')
     elif _RALI_GLOBALS['METHOD'] == 'Playlist':
         order = 'ascending'
         if _RALI_GLOBALS['REVERSE']:
@@ -959,22 +966,22 @@ def _getMusicFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                '{"directory": "%s", '
+                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
                 '"media": "music", '
                 '"properties": ["dateadded"], '
                 '"sort": '
-                    '{"order": "%s", '
-                    '"method": "%s"}}, '
-            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST'], order, _RALI_GLOBALS['SORTBY']))
+                    f'{{"order": "{order}", '
+                    f'"method": "{_RALI_GLOBALS['''SORTBY''']}"}}}}, '
+            '"id": 1}')
     else:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                '{"directory": "%s", '
+                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
                 '"media": "music", '
                 '"properties": ["dateadded"]}, '
-            '"id": 1}' % (_RALI_GLOBALS['PLAYLIST']))
+            '"id": 1}')
     _json_pl_response = json.loads(_json_query)
     # If request return some results
     _files: List[dict] = _json_pl_response.get('result', {}).get('files')
@@ -982,7 +989,7 @@ def _getMusicFromPlaylist() -> None:
     if _files and _files[0].get('type') == 'album':
         for _file in _files:
             if MONITOR.abortRequested():
-                break
+                return
             if _file['type'] == 'album':
                 _albumslist.append(_file)
                 _albumid = _file['id']
@@ -991,9 +998,9 @@ def _getMusicFromPlaylist() -> None:
                     '{"jsonrpc":"2.0", '
                     '"method":"AudioLibrary.GetSongs", '
                     '"params":'
-                        '{"filter":{"albumid": %s}, '
+                        f'{{"filter":{{"albumid": {_albumid}}}, '
                         '"properties":["artistid"]}, '
-                    '"id": 1}' % _albumid)
+                    '"id": 1}')
                 _json_pl_response = json.loads(_json_query)
                 _result = _json_pl_response.get('result', {}).get('songs')
                 if _result:
@@ -1022,7 +1029,9 @@ def _getMusicFromPlaylist() -> None:
             random.shuffle(_albumslist)
         _count = 0
         for _album in _albumslist:
-            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
+            if MONITOR.abortRequested():
+                return
+            if _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _albumid = _album['id']
@@ -1031,7 +1040,7 @@ def _getMusicFromPlaylist() -> None:
                     '{"jsonrpc": "2.0", '
                     '"method": "AudioLibrary.GetAlbumDetails", '
                     '"params":'
-                        '{"albumid": %s, '
+                        f'{{"albumid": {_albumid}, '
                         '"properties":'
                             '["title", '
                             '"description", '
@@ -1048,13 +1057,13 @@ def _getMusicFromPlaylist() -> None:
                             '"rating", '
                             '"userrating", '
                             '"playcount"]}, '
-                    '"id": 1}' % _albumid)
+                    '"id": 1}')
             else:
                 _json_query = xbmc.executeJSONRPC(
                     '{"jsonrpc": "2.0", '
                     '"method": "AudioLibrary.GetAlbumDetails", '
                     '"params":'
-                        '{"albumid": %s, '
+                        f'{{"albumid": {_albumid}, '
                         '"properties":'
                             '["title", '
                             '"description", '
@@ -1070,7 +1079,7 @@ def _getMusicFromPlaylist() -> None:
                             '"fanart", '
                             '"rating", '
                             '"playcount"]}, '
-                    '"id": 1}' % _albumid)
+                    '"id": 1}')
             _json_pl_response = json.loads(_json_query)
             # If request return some results
             _album: dict = _json_pl_response.get(
@@ -1083,14 +1092,14 @@ def _getMusicFromPlaylist() -> None:
     elif _files and _files[0].get('type') == 'song':
         for _file in _files:
             if MONITOR.abortRequested():
-                break
+                return
             _songid = _file['id']
             if JSON_RPC_NEXUS:
                 _json_query = xbmc.executeJSONRPC(
                     '{"jsonrpc": "2.0", '
                     '"method": "AudioLibrary.GetSongDetails", '
                     '"params":'
-                        '{"songid": %s, '
+                        f'{{"songid": {_songid}, '
                         '"properties":'
                             '["title", '
                             '"artist", '
@@ -1108,13 +1117,13 @@ def _getMusicFromPlaylist() -> None:
                             '"fanart", '
                             '"userrating", '
                             '"playcount"]}, '
-                    '"id": 1}' % _songid)
+                    '"id": 1}')
             else:
                 _json_query = xbmc.executeJSONRPC(
                     '{"jsonrpc": "2.0", '
                     '"method": "AudioLibrary.GetSongDetails", '
                     '"params":'
-                        '{"songid": %s, '
+                       f'{{"songid": {_songid}, '
                         '"properties":'
                             '["title", '
                             '"artist", '
@@ -1131,7 +1140,7 @@ def _getMusicFromPlaylist() -> None:
                             '"thumbnail", '
                             '"fanart", '
                             '"playcount"]}, '
-                    '"id": 1}' % _songid)
+                    '"id": 1}')
             _json_pl_response = json.loads(_json_query)
             _result: dict = _json_pl_response.get(
                 'result', {}).get('songdetails')
@@ -1152,7 +1161,9 @@ def _getMusicFromPlaylist() -> None:
             random.shuffle(_songslist)
         _count = 0
         for _song in _songslist:
-            if MONITOR.abortRequested() or _count == _RALI_GLOBALS['LIMIT']:
+            if MONITOR.abortRequested():
+                return
+            if _count == _RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _setSongPROPERTIES(_song, _count)
@@ -1172,14 +1183,14 @@ def _clearProperties() -> None:
         None
     """
     # Reset window Properties
-    WINDOW.clearProperty('%s.Loaded' % (_RALI_GLOBALS['PROPERTY']))
-    WINDOW.clearProperty('%s.Count' % (_RALI_GLOBALS['PROPERTY']))
-    WINDOW.clearProperty('%s.Watched' % (_RALI_GLOBALS['PROPERTY']))
-    WINDOW.clearProperty('%s.Unwatched' % (_RALI_GLOBALS['PROPERTY']))
-    WINDOW.clearProperty('%s.Artists' % (_RALI_GLOBALS['PROPERTY']))
-    WINDOW.clearProperty('%s.Albums' % (_RALI_GLOBALS['PROPERTY']))
-    WINDOW.clearProperty('%s.Songs' % (_RALI_GLOBALS['PROPERTY']))
-    WINDOW.clearProperty('%s.Type' % (_RALI_GLOBALS['PROPERTY']))
+    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Loaded')
+    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Count')
+    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Watched')
+    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Unwatched')
+    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Artists')
+    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Albums')
+    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Songs')
+    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Type')
 
 
 def _setMusicProperties(_artists: int, _albums: int, _songs: int) -> None:
@@ -1191,10 +1202,10 @@ def _setMusicProperties(_artists: int, _albums: int, _songs: int) -> None:
         _songs (int): number of songs
     """
     # Set window Properties
-    _setProperty('%s.Artists' % (_RALI_GLOBALS['PROPERTY']), str(_artists))
-    _setProperty('%s.Albums' % (_RALI_GLOBALS['PROPERTY']), str(_albums))
-    _setProperty('%s.Songs' % (_RALI_GLOBALS['PROPERTY']), str(_songs))
-    _setProperty('%s.Type' % (_RALI_GLOBALS['PROPERTY']), _RALI_GLOBALS['TYPE'])
+    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Artists', str(_artists))
+    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Albums', str(_albums))
+    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Songs', str(_songs))
+    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Type', _RALI_GLOBALS['TYPE'])
 
 
 def _setVideoProperties(_total: int, _watched: int, _unwatched: int) -> None:
@@ -1206,10 +1217,10 @@ def _setVideoProperties(_total: int, _watched: int, _unwatched: int) -> None:
         _unwatched (int): Subtotal items unwatched
     """
     # Set window Properties
-    _setProperty('%s.Count' % (_RALI_GLOBALS['PROPERTY']), str(_total))
-    _setProperty('%s.Watched' % (_RALI_GLOBALS['PROPERTY']), str(_watched))
-    _setProperty('%s.Unwatched' % (_RALI_GLOBALS['PROPERTY']), str(_unwatched))
-    _setProperty('%s.Type' % (_RALI_GLOBALS['PROPERTY']), _RALI_GLOBALS['TYPE'])
+    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Count', str(_total))
+    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Watched', str(_watched))
+    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Unwatched', str(_unwatched))
+    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Type', _RALI_GLOBALS['TYPE'])
 
 
 def _setTvShowsProperties(_tvshows) -> None:
@@ -1219,7 +1230,7 @@ def _setTvShowsProperties(_tvshows) -> None:
         _tvshows(_type_): _description_
     """
     # Set window Properties
-    _setProperty('%s.TvShows' % (_RALI_GLOBALS['PROPERTY']), str(_tvshows))
+    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.TvShows', str(_tvshows))
 
 
 def _setEpisodeProperties(_episode, _count) -> None:
@@ -1235,8 +1246,8 @@ def _setEpisodeProperties(_episode, _count) -> None:
             '"method": "VideoLibrary.GetEpisodeDetails", '
             '"params": '
                 '{"properties": ["streamdetails"], '
-                '"episodeid":%s }, '
-            '"id": 1}' % (_episode['id']))
+                f'"episodeid":{_episode['''id''']} }}, '
+            '"id": 1}')
         _json_query = json.loads(_json_query)
         if 'episodedetails' in _json_query['result']:
             item = _json_query['result']['episodedetails']
@@ -1522,32 +1533,32 @@ def media_streamdetails(filename: str, streamdetails: dict) -> dict:
     return info
 
 
-def media_path(path) -> str:
+def media_path(raw_path:str) -> str:
     """gets actual path for the media item
 
     Args:
-        path (str): The Kodi path for the media item
+        raw_path (str): The Kodi path for the media item
 
     Returns:
         str: The path fixed for stacked or RARed items
     """
     # Check for stacked movies
     try:
-        path: tuple = os.path.split(path)[0].rsplit(' , ', 1)[1].replace(',,', ',')
+        raw_path = os.path.split(raw_path)[0].rsplit(' , ', 1)[1].replace(',,', ',')
     except:
-        path = os.path.split(path)[0]
+        raw_path = os.path.split(raw_path)[0]
     # Fixes problems with rared movies and multipath
-    if path.startswith('rar://'):
-        path = [os.path.split(urllib.request.url2pathname(
-            path.replace('rar://', '')))[0]]
-    elif path.startswith('multipath://'):
-        temp_path = path.replace('multipath://', '').split('%2f/')
-        path = []
+    if raw_path.startswith('rar://'):
+        raw_pathlist = [os.path.split(urllib.request.url2pathname(
+            raw_path.replace('rar://', '')))[0]]
+    elif raw_path.startswith('multipath://'):
+        temp_path = raw_path.replace('multipath://', '').split('%2f/')
+        raw_pathlist = []
         for item in temp_path:
-            path.append(urllib.request.url2pathname(item))
+            raw_pathlist.append(urllib.request.url2pathname(item))
     else:
-        path = [path]
-    return path[0]
+        raw_pathlist = [raw_path]
+    return raw_pathlist[0]
 
 
 # Parse argv for any preferences
