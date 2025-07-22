@@ -4,3 +4,4 @@
 pysrc
 *.espressostorage
 .DS_Store
+.vscode*
