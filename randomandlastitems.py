@@ -175,7 +175,7 @@ def _getMovies() -> None:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
-            f'"params": {{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
+            f'"params": {{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
                 '"media": "video", '
                 '"properties": '
                     '["title", '
@@ -206,7 +206,7 @@ def _getMovies() -> None:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
-            f'"params": {{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
+            f'"params": {{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
                 '"media": "video", '
                 '"properties": '
                     '["title", '
@@ -245,7 +245,7 @@ def _getMovies() -> None:
                         '{"jsonrpc": "2.0", '
                         '"method": "Files.GetDirectory", '
                             '"params": '
-                                f'{{"directory": "{_item['''file''']}", '
+                                f'{{"directory": "{_item["file"]}", '
                                 '"media": "video", '
                                 '"properties": '
                                     '["title", '
@@ -277,7 +277,7 @@ def _getMovies() -> None:
                         '{"jsonrpc": "2.0", '
                         '"method": "Files.GetDirectory", '
                             '"params": '
-                                f'{{"directory": "{_item['''file''']}", '
+                                f'{{"directory": "{_item["file"]}", '
                                 '"media": "video", '
                                 '"properties": '
                                     '["title", '
@@ -360,7 +360,7 @@ def _getMovies() -> None:
                 '{"jsonrpc": "2.0", '
                     '"method": "VideoLibrary.GetMovieDetails", '
                     '"params": '
-                        f'{{"properties": ["streamdetails"], "movieid":{_movie['''id''']}}}, '
+                        f'{{"properties": ["streamdetails"], "movieid":{_movie["id"]}}}, '
                     '"id": 1}')
             _json_query = json.loads(_json_query)
             if 'result' in _json_query and 'moviedetails' in _json_query['result']:
@@ -454,7 +454,7 @@ def _getMusicVideosFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
                 '"method": "Files.GetDirectory", '
                 '"params": '
-                    f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
+                    f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
                     '"media": "video", '
                     '"properties": '
                         '["title", '
@@ -484,7 +484,7 @@ def _getMusicVideosFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
                 '"method": "Files.GetDirectory", '
                 '"params": '
-                    f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
+                    f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
                     '"media": "video", '
                     '"properties": '
                         '["title", '
@@ -548,7 +548,7 @@ def _getMusicVideosFromPlaylist() -> None:
                 '{"jsonrpc": "2.0", '
                     '"method": "VideoLibrary.GetMusicVideoDetails", '
                     '"params": '
-                    f'{{"properties": ["streamdetails"], "musicvideoid":{_musicvid['''id''']} }}, '
+                    f'{{"properties": ["streamdetails"], "musicvideoid":{_musicvid["id"]} }}, '
                     '"id": 1}')
             _json_query = json.loads(_json_query)
             if 'musicvideodetails' in _json_query['result']:
@@ -644,7 +644,7 @@ def _getEpisodesFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
+                f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
                 '"media": "video", '
                 '"properties": '
                     '["title", '
@@ -672,7 +672,7 @@ def _getEpisodesFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
+                f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
                 '"media": "video", '
                 '"properties": '
                     '["title", '
@@ -708,7 +708,7 @@ def _getEpisodesFromPlaylist() -> None:
                         '{"jsonrpc": "2.0", '
                         '"method": "VideoLibrary.GetEpisodes", '
                         '"params": '
-                            f'{{ "tvshowid": {_file['''id''']}, '
+                            f'{{ "tvshowid": {_file["id"]}, '
                             '"properties": '
                                 '["title", '
                                 '"playcount", '
@@ -733,7 +733,7 @@ def _getEpisodesFromPlaylist() -> None:
                         '{"jsonrpc": "2.0", '
                         '"method": "VideoLibrary.GetEpisodes", '
                         '"params": '
-                            f'{{ "tvshowid": {_file['''id''']}, '
+                            f'{{ "tvshowid": {_file["id"]}, '
                             '"properties": '
                                 '["title", '
                                 '"playcount", '
@@ -941,7 +941,7 @@ def _getMusicFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
+                f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
                 '"media": "music", '
                 '"properties": ["dateadded"], '
                 '"sort": {"method": "random"}}, '
@@ -951,7 +951,7 @@ def _getMusicFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
+                f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
                 '"media": "music", '
                 '"properties": ["dateadded"], '
                 '"sort": '
@@ -966,19 +966,19 @@ def _getMusicFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
+                f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
                 '"media": "music", '
                 '"properties": ["dateadded"], '
                 '"sort": '
                     f'{{"order": "{order}", '
-                    f'"method": "{_RALI_GLOBALS['''SORTBY''']}"}}}}, '
+                    f'"method": "{_RALI_GLOBALS["SORTBY"]}"}}}}, '
             '"id": 1}')
     else:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-                f'{{"directory": "{_RALI_GLOBALS['''PLAYLIST''']}", '
+                f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
                 '"media": "music", '
                 '"properties": ["dateadded"]}, '
             '"id": 1}')
@@ -1246,7 +1246,7 @@ def _setEpisodeProperties(_episode, _count) -> None:
             '"method": "VideoLibrary.GetEpisodeDetails", '
             '"params": '
                 '{"properties": ["streamdetails"], '
-                f'"episodeid":{_episode['''id''']} }}, '
+                f'"episodeid":{_episode["id"]} }}, '
             '"id": 1}')
         _json_query = json.loads(_json_query)
         if 'episodedetails' in _json_query['result']:
