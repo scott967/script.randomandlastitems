@@ -1561,6 +1561,7 @@ def media_path(raw_path:str) -> str:
     return raw_pathlist[0]
 
 
+
 # Parse argv for any preferences
 _parse_argv()
 # Clear Properties for playlist PROPERTY from _parse_argv()
