@@ -1575,3 +1575,4 @@ if _RALI_GLOBALS['TYPE'] != 'Invalid':
     f'and took {_timeTook(START_TIME)} (Nexus {JSON_RPC_NEXUS})')
 else:
     log(f'Unable to process the {_RALI_GLOBALS["METHOD"]}{_RALI_GLOBALS["MENU"]} playlist')
+del WINDOW, MONITOR, __addon__
