@@ -123,7 +123,7 @@ def _timeTook(t: float) -> str:
 
 def _watchedOrResume(_total: int, _watched: int, _unwatched: int, _result: list,
                      _file: dict) -> Tuple[int, int, int, list]:
-    """Gets watched / in progess status for a library item and increments counters
+    """Gets watched / in progress status for a library item and increments counters
 
     RESUME and UNWATCHED are bools to determine when an item is valid for inclusion
     in the _result item list.  eg, if UNWATCHED is true any watched item is
@@ -368,11 +368,12 @@ def _getMovies() -> None:
                 _movie['streamdetails'] = item['streamdetails']
             if _movie['resume']['position'] > 0 and float(_movie['resume']['total']) > 0:
                 resume = 'true'
-                played = '%s%%' % int(
-                    (float(_movie['resume']['position']) / float(_movie['resume']['total'])) * 100)
+                played = f'{int((float(_movie["resume"]["position"]) / float(_movie["resume"]["total"])) * 100)}%'
+                playedasint = f'{int((float(_movie["resume"]["position"]) / float(_movie["resume"]["total"])) * 100)}'
             else:
                 resume = 'false'
                 played = '0%'
+                playedasint = '0'
             if _movie['playcount'] >= 1:
                 watched = 'true'
             else:
@@ -392,6 +393,7 @@ def _getMovies() -> None:
                 else:
                     runtime = _movie['runtime']
             # Set window properties
+            # autopep8:off
             _setProperty('%s.%d.DBID'            % (_RALI_GLOBALS['PROPERTY'], _count), str(_movie.get('id','')))
             _setProperty('%s.%d.Title'           % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('title',''))
             _setProperty('%s.%d.OriginalTitle'   % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('originaltitle',''))
@@ -427,6 +429,7 @@ def _getMovies() -> None:
             _setProperty('%s.%d.VideoAspect'     % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videoaspect'])
             _setProperty('%s.%d.AudioCodec'      % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['audiocodec'])
             _setProperty('%s.%d.AudioChannels'   % (_RALI_GLOBALS['PROPERTY'], _count), str(streaminfo['audiochannels']))
+            # autopep8:on
 
         if _count != _RALI_GLOBALS['LIMIT']:
             while _count < _RALI_GLOBALS['LIMIT']:
@@ -556,11 +559,12 @@ def _getMusicVideosFromPlaylist() -> None:
                 _musicvid['streamdetails'] = item['streamdetails']
             if _musicvid['resume']['position'] > 0 and float(_musicvid['resume']['total']) > 0:
                 resume = 'true'
-                played = '%s%%' % int(
-                    (float(_musicvid['resume']['position']) / float(_musicvid['resume']['total'])) * 100)
+                played = f'{int((float(_musicvid["resume"]["position"]) / float(_musicvid["resume"]["total"])) * 100)}%'
+                playedasint = f'{int((float(_musicvid["resume"]["position"]) / float(_musicvid["resume"]["total"])) * 100)}'
             else:
                 resume = 'false'
                 played = '0%'
+                playedasint = '0'
             if _musicvid['playcount'] >= 1:
                 watched = 'true'
             else:
@@ -584,6 +588,7 @@ def _getMusicVideosFromPlaylist() -> None:
                 else:
                     runtime = _musicvid['runtime']
             # Set window properties
+            # autopep8:off
             _setProperty('%s.%d.DBID'            % (_RALI_GLOBALS['PROPERTY'], _count), str(_musicvid.get('id')))
             _setProperty('%s.%d.Title'           % (_RALI_GLOBALS['PROPERTY'], _count), _musicvid.get('title',''))
             _setProperty('%s.%d.Year'            % (_RALI_GLOBALS['PROPERTY'], _count), str(_musicvid.get('year','')))
@@ -618,6 +623,7 @@ def _getMusicVideosFromPlaylist() -> None:
             _setProperty('%s.%d.VideoAspect'     % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videoaspect'])
             _setProperty('%s.%d.AudioCodec'      % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['audiocodec'])
             _setProperty('%s.%d.AudioChannels'   % (_RALI_GLOBALS['PROPERTY'], _count), str(streaminfo['audiochannels']))
+            # autopep8:on
 
         if _count != _RALI_GLOBALS['LIMIT']:
             while _count < _RALI_GLOBALS['LIMIT']:
@@ -1262,11 +1268,12 @@ def _setEpisodeProperties(_episode, _count) -> None:
             userrating = ''
         if _episode['resume']['position'] > 0 and float(_episode['resume']['total']) > 0:
             resume = 'true'
-            played = '%s%%' % int(
-                (float(_episode['resume']['position']) / float(_episode['resume']['total'])) * 100)
+            played = f'{int((float(_episode["resume"]["position"]) / float(_episode["resume"]["total"])) * 100)}%'
+            playedasint = f'{int((float(_episode["resume"]["position"]) / float(_episode["resume"]["total"])) * 100)}'
         else:
             resume = 'false'
             played = '0%'
+            playedasint = '0'
         art = _episode['art']
         path = media_path(_episode['file'])
         play = 'RunScript(' + __addonid__ + ',episodeid=' + \
@@ -1274,6 +1281,7 @@ def _setEpisodeProperties(_episode, _count) -> None:
         runtime = str(int((_episode['runtime'] / 60) + 0.5))
         streaminfo = media_streamdetails(_episode['file'].lower(),
                                          _episode['streamdetails'])
+        # autopep8:off
         _setProperty('%s.%d.DBID'                  % (_RALI_GLOBALS['PROPERTY'], _count), str(_episode.get('id')))
         _setProperty('%s.%d.Title'                 % (_RALI_GLOBALS['PROPERTY'], _count), _episode.get('title',''))
         _setProperty('%s.%d.Episode'               % (_RALI_GLOBALS['PROPERTY'], _count), episode)
@@ -1311,6 +1319,7 @@ def _setEpisodeProperties(_episode, _count) -> None:
         _setProperty('%s.%d.VideoAspect'           % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['videoaspect'])
         _setProperty('%s.%d.AudioCodec'            % (_RALI_GLOBALS['PROPERTY'], _count), streaminfo['audiocodec'])
         _setProperty('%s.%d.AudioChannels'         % (_RALI_GLOBALS['PROPERTY'], _count), str(streaminfo['audiochannels']))
+        # autopep8:on
 
     else:
         _setProperty('%s.%d.Title'               % (_RALI_GLOBALS['PROPERTY'], _count), '')
@@ -1331,6 +1340,7 @@ def _setAlbumPROPERTIES(_album: dict, _count: int) -> None:
         play = 'RunScript(' + __addonid__ + ',albumid=' + \
             str(_album.get('albumid')) + ')'
         path = 'musicdb://albums/' + str(_album.get('albumid')) + '/'
+        # autopep8:off
         _setProperty('%s.%d.Title'       % (_RALI_GLOBALS['PROPERTY'], _count), _album.get('title',''))
         _setProperty('%s.%d.Artist'      % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_album.get('artist','')))
         _setProperty('%s.%d.Genre'       % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_album.get('genre','')))
@@ -1349,6 +1359,7 @@ def _setAlbumPROPERTIES(_album: dict, _count: int) -> None:
         _setProperty('%s.%d.LibraryPath' % (_RALI_GLOBALS['PROPERTY'], _count), path)
     else:
         _setProperty('%s.%d.Title'       % (_RALI_GLOBALS['PROPERTY'], _count), '')
+    # autopep8:on
 
 
 def _setSongPROPERTIES(_song: dict, _count: int) -> None:
@@ -1366,6 +1377,7 @@ def _setSongPROPERTIES(_song: dict, _count: int) -> None:
         play = 'RunScript(' + __addonid__ + ',songid=' + \
             str(_song.get('songid')) + ')'
         path = 'musicdb://songs/' + str(_song.get('songid')) + '/'
+        # autopep8:off
         _setProperty('%s.%d.Title'       % (_RALI_GLOBALS['PROPERTY'], _count), _song.get('title',''))
         _setProperty('%s.%d.Artist'      % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_song.get('artist','')))
         _setProperty('%s.%d.Genre'       % (_RALI_GLOBALS['PROPERTY'], _count), ' / '.join(_song.get('genre','')))
@@ -1379,6 +1391,7 @@ def _setSongPROPERTIES(_song: dict, _count: int) -> None:
         _setProperty('%s.%d.LibraryPath' % (_RALI_GLOBALS['PROPERTY'], _count), path)
     else:
         _setProperty('%s.%d.Title'       % (_RALI_GLOBALS['PROPERTY'], _count), '')
+    # autopep8:on
 
 
 def _setProperty(_property: str, _value: str) -> None:
