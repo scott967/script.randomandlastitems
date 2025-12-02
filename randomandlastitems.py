@@ -236,7 +236,7 @@ def _getMovies() -> None:
             '}, '
             '"id": 1}')
     _json_pl_response: dict = json.loads(_json_query)
-    # If request return some results
+    # If request return some results as _files
     _files: dict = _json_pl_response.get('result', {}).get('files')
     if _files:
         for _item in _files:
@@ -331,11 +331,11 @@ def _getMovies() -> None:
                         _result.append(_movie)
             else:
                 _playcount = _item['playcount']
+                _total += 1
                 if _RALI_GLOBALS['RESUME'] == 'True':
                     _resume = _item['resume']['position']
                 else:
                     _resume = 0
-                _total += 1
                 if _playcount == 0:
                     _unwatched += 1
                 else:
@@ -424,6 +424,7 @@ def _getMovies() -> None:
             _setProperty('%s.%d.Art(discart)'    % (_RALI_GLOBALS['PROPERTY'], _count), art.get('discart',''))
             _setProperty('%s.%d.Resume'          % (_RALI_GLOBALS['PROPERTY'], _count), resume)
             _setProperty('%s.%d.PercentPlayed'   % (_RALI_GLOBALS['PROPERTY'], _count), played)
+            _setProperty('%s.%d.Played'          % (_RALI_GLOBALS['PROPERTY'], _count), playedasint)
             _setProperty('%s.%d.Watched'         % (_RALI_GLOBALS['PROPERTY'], _count), watched)
             _setProperty('%s.%d.File'            % (_RALI_GLOBALS['PROPERTY'], _count), _movie.get('file',''))
             _setProperty('%s.%d.Path'            % (_RALI_GLOBALS['PROPERTY'], _count), path)
@@ -1426,7 +1427,7 @@ def _parse_argv() -> None:
     """
     try:
         params = dict(arg.split('=') for arg in sys.argv[1].split('&'))
-    except:
+    except Exception:
         params = {}
     if params.get('movieid'):
         # xbmc.executeJSONRPC('{ "jsonrpc": "2.0", "method": "Player.Open", "params": { "item": { "movieid": %d }, "options":{ "resume": true } }, "id": 1 }' % int(params.get("movieid")))
@@ -1484,7 +1485,7 @@ def _parse_argv() -> None:
                 if _RALI_GLOBALS['UNWATCHED'] == '':
                     _RALI_GLOBALS['UNWATCHED'] = 'False'
             elif 'resume=' in param:
-                RESUME = param.replace('resume=', '')
+                _RALI_GLOBALS['RESUME'] = param.replace('resume=', '')
         if _RALI_GLOBALS['PLAYLIST'] != '' and xbmcvfs.exists(xbmcvfs.translatePath(_RALI_GLOBALS['PLAYLIST'])):
             _getPlaylistType()
         if _RALI_GLOBALS['PROPERTY'] == '':
