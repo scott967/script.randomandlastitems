@@ -101,8 +101,7 @@ def _getPlaylistType() -> None:
     # get playlist order
     if _RALI_GLOBALS['METHOD'] == 'Playlist':
         if _doc.getElementsByTagName('order'):
-            _RALI_GLOBALS['SORTBY'] = _doc.getElementsByTagName('order')[
-                0].firstChild.nodeValue
+            _RALI_GLOBALS['SORTBY'] = _doc.getElementsByTagName('order')[0].firstChild.nodeValue
             if _doc.getElementsByTagName('order')[0].attributes.getNamedItem('direction').nodeValue == 'descending':
                 _RALI_GLOBALS['REVERSE'] = True
         else:
@@ -1509,17 +1508,17 @@ def media_streamdetails(filename: str, streamdetails: dict) -> dict:
     if '3d' in filename:
         info['videoresolution'] = '3d'
     elif video:
-        videowidth = video[0]['width']
+        # videowidth = video[0]['width']
         videoheight = video[0]['height']
-        if (video[0]['width'] <= 720 and video[0]['height'] <= 480):
+        if (video[0]['width'] <= 720 and videoheight <= 480):
             info['videoresolution'] = '480'
-        elif (video[0]['width'] <= 768 and video[0]['height'] <= 576):
+        elif (video[0]['width'] <= 768 and videoheight <= 576):
             info['videoresolution'] = '576'
-        elif (video[0]['width'] <= 960 and video[0]['height'] <= 544):
+        elif (video[0]['width'] <= 960 and videoheight <= 544):
             info['videoresolution'] = '540'
-        elif (video[0]['width'] <= 1280 and video[0]['height'] <= 720):
+        elif (video[0]['width'] <= 1280 and videoheight <= 720):
             info['videoresolution'] = '720'
-        elif (video[0]['width'] >= 1281 and video[0]['height'] >= 721):
+        elif (video[0]['width'] >= 1281 and videoheight >= 721):
             info['videoresolution'] = '1080'
         else:
             info['videoresolution'] = ''
@@ -1570,8 +1569,7 @@ def media_path(raw_path: str) -> str:
     """
     # Check for stacked movies
     try:
-        raw_path = os.path.split(raw_path)[0].rsplit(' , ', 1)[
-            1].replace(',,', ',')
+        raw_path = os.path.split(raw_path)[0].rsplit(' , ', 1)[1].replace(',,', ',')
     except Exception:
         raw_path = os.path.split(raw_path)[0]
     # Fixes problems with rared movies and multipath
