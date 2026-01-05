@@ -1334,7 +1334,7 @@ def _setEpisodeProperties(_episode, _count) -> None:
         # autopep8:on
 
     else:
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title' , '')
+        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title', '')
 
 
 def _setAlbumPROPERTIES(_album: dict, _count: int) -> None:
