@@ -29,35 +29,8 @@ from typing import List, Tuple
 from xml.dom.minidom import parse
 
 import xbmc
-import xbmcaddon
 import xbmcvfs
-from xbmcgui import Window
-
-# Define global variables
-_RALI_GLOBALS = {'LIMIT': 20,
-                 'METHOD': 'Random',
-                 'REVERSE': False,
-                 'MENU': '',
-                 'PLAYLIST': '',
-                 'PROPERTY': '',
-                 'RESUME': 'False',
-                 'SORTBY': '',
-                 'TYPE': '',
-                 'UNWATCHED': 'False'}
-START_TIME: float = time.time()
-WINDOW = Window(10000)
-MONITOR = xbmc.Monitor()
-# Nexus JSON RPC 12.9.0 required for userrating
-JSON_RPC_NEXUS: bool = (json.loads(xbmc.executeJSONRPC(
-                        '{"jsonrpc": "2.0", "method": "JSONRPC.Version", "id": 1}'))['result']['version']['major'],
-                        json.loads(xbmc.executeJSONRPC(
-                            '{"jsonrpc": "2.0", "method": "JSONRPC.Version", "id": 1}'))['result']['version']['minor']) >= (12, 9)
-
-__addon__ = xbmcaddon.Addon()
-__addonversion__ = __addon__.getAddonInfo('version')
-__addonid__ = __addon__.getAddonInfo('id')
-__addonname__ = __addon__.getAddonInfo('name')
-
+from lib import *
 
 def log(txt: str) -> None:
     """utility writes info to Kodi debug level log
@@ -67,7 +40,7 @@ def log(txt: str) -> None:
 
     Returns: None
     """
-    message = f'{__addonname__}: {txt}'
+    message = f'{ADDONNAME}: {txt}'
     xbmc.log(msg=message, level=xbmc.LOGDEBUG)
 
 
@@ -76,19 +49,19 @@ def _getPlaylistType() -> None:
 
         Returns:  None
     """
-    _doc = parse(xbmcvfs.translatePath(_RALI_GLOBALS['PLAYLIST']))
+    _doc = parse(xbmcvfs.translatePath(RALI_GLOBALS['PLAYLIST']))
     _type = _doc.getElementsByTagName('smartplaylist')[0].attributes.getNamedItem(
         'type').nodeValue  # type: ignore
     if _type == 'movies':
-        _RALI_GLOBALS['TYPE'] = 'Movie'
+        RALI_GLOBALS['TYPE'] = 'Movie'
     if _type == 'musicvideos':
-        _RALI_GLOBALS['TYPE'] = 'MusicVideo'
+        RALI_GLOBALS['TYPE'] = 'MusicVideo'
     if _type == 'episodes' or _type == 'tvshows':
-        _RALI_GLOBALS['TYPE'] = 'Episode'
+        RALI_GLOBALS['TYPE'] = 'Episode'
     if _type == 'songs' or _type == 'albums':
-        _RALI_GLOBALS['TYPE'] = 'Music'
+        RALI_GLOBALS['TYPE'] = 'Music'
     if _type == "artists" or _type == 'mixed':
-        _RALI_GLOBALS['TYPE'] = 'Invalid'
+        RALI_GLOBALS['TYPE'] = 'Invalid'
     # get playlist name
     _name = ''
     if _doc.getElementsByTagName('name'):
@@ -97,15 +70,15 @@ def _getPlaylistType() -> None:
                 'name')[0].firstChild.nodeValue  # type: ignore
         except Exception:
             _name = ''
-    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Name', str(_name))
+    _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.Name', str(_name))
     # get playlist order
-    if _RALI_GLOBALS['METHOD'] == 'Playlist':
+    if RALI_GLOBALS['METHOD'] == 'Playlist':
         if _doc.getElementsByTagName('order'):
-            _RALI_GLOBALS['SORTBY'] = _doc.getElementsByTagName('order')[0].firstChild.nodeValue
+            RALI_GLOBALS['SORTBY'] = _doc.getElementsByTagName('order')[0].firstChild.nodeValue
             if _doc.getElementsByTagName('order')[0].attributes.getNamedItem('direction').nodeValue == 'descending':
-                _RALI_GLOBALS['REVERSE'] = True
+                RALI_GLOBALS['REVERSE'] = True
         else:
-            _RALI_GLOBALS['METHOD'] = ''
+            RALI_GLOBALS['METHOD'] = ''
 
 
 def _timeTook(t: float) -> str:
@@ -151,9 +124,9 @@ def _watchedOrResume(_total: int, _watched: int, _unwatched: int, _result: list,
     else:
         _file['watched'] = 'True'
         _watched += 1
-    if ((_RALI_GLOBALS['UNWATCHED'] == 'False' and _RALI_GLOBALS['RESUME'] == 'False')
-        or (_RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
-            or (_RALI_GLOBALS['RESUME'] == 'True' and _resume != 0) and _file.get('dateadded')):
+    if ((RALI_GLOBALS['UNWATCHED'] == 'False' and RALI_GLOBALS['RESUME'] == 'False')
+        or (RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
+            or (RALI_GLOBALS['RESUME'] == 'True' and _resume != 0) and _file.get('dateadded')):
         _result.append(_file)
     return _total, _watched, _unwatched, _result
 
@@ -171,13 +144,13 @@ def _getMovies() -> None:
     _unwatched = 0
     _watched = 0
     # Request database using JSON
-    if _RALI_GLOBALS['PLAYLIST'] == '':
-        _RALI_GLOBALS['PLAYLIST'] = 'videodb://movies/titles/'
+    if RALI_GLOBALS['PLAYLIST'] == '':
+        RALI_GLOBALS['PLAYLIST'] = 'videodb://movies/titles/'
     if JSON_RPC_NEXUS:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
-            f'"params": {{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
+            f'"params": {{"directory": "{RALI_GLOBALS["PLAYLIST"]}", '
             '"media": "video", '
             '"properties": '
             '["title", '
@@ -208,7 +181,7 @@ def _getMovies() -> None:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
-            f'"params": {{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
+            f'"params": {{"directory": "{RALI_GLOBALS["PLAYLIST"]}", '
             '"media": "video", '
             '"properties": '
             '["title", '
@@ -315,7 +288,7 @@ def _getMovies() -> None:
                     if MONITOR.abortRequested():
                         return
                     _playcount: int = _movie['playcount']
-                    if _RALI_GLOBALS['RESUME'] == 'True':
+                    if RALI_GLOBALS['RESUME'] == 'True':
                         _resume: int = _movie['resume']['position']
                     else:
                         _resume = 0
@@ -324,14 +297,14 @@ def _getMovies() -> None:
                         _unwatched += 1
                     else:
                         _watched += 1
-                    if ((_RALI_GLOBALS['UNWATCHED'] == 'False' and _RALI_GLOBALS['RESUME'] == 'False')
-                        or (_RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
-                            or (_RALI_GLOBALS['RESUME'] == 'True' and _resume != 0)):
+                    if ((RALI_GLOBALS['UNWATCHED'] == 'False' and RALI_GLOBALS['RESUME'] == 'False')
+                        or (RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
+                            or (RALI_GLOBALS['RESUME'] == 'True' and _resume != 0)):
                         _result.append(_movie)
             else:
                 _playcount = _item['playcount']
                 _total += 1
-                if _RALI_GLOBALS['RESUME'] == 'True':
+                if RALI_GLOBALS['RESUME'] == 'True':
                     _resume = _item['resume']['position']
                 else:
                     _resume = 0
@@ -339,24 +312,24 @@ def _getMovies() -> None:
                     _unwatched += 1
                 else:
                     _watched += 1
-                if ((_RALI_GLOBALS['UNWATCHED'] == 'False' and _RALI_GLOBALS['RESUME'] == 'False')
-                    or (_RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
-                        or (_RALI_GLOBALS['RESUME'] == 'True' and _resume != 0)):
+                if ((RALI_GLOBALS['UNWATCHED'] == 'False' and RALI_GLOBALS['RESUME'] == 'False')
+                    or (RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
+                        or (RALI_GLOBALS['RESUME'] == 'True' and _resume != 0)):
                     _result.append(_item)
         _setVideoProperties(_total, _watched, _unwatched)
         _count = 0
-        if _RALI_GLOBALS['METHOD'] == 'Last':
+        if RALI_GLOBALS['METHOD'] == 'Last':
             _result = sorted(_result, key=itemgetter(
                 'dateadded'), reverse=True)
-        elif _RALI_GLOBALS['METHOD'] == 'Playlist':
+        elif RALI_GLOBALS['METHOD'] == 'Playlist':
             _result = sorted(_result, key=itemgetter(
-                _RALI_GLOBALS['SORTBY']), reverse=_RALI_GLOBALS['REVERSE'])
+                RALI_GLOBALS['SORTBY']), reverse=RALI_GLOBALS['REVERSE'])
         else:
             random.shuffle(_result)
         for _movie in _result:
             if MONITOR.abortRequested():
                 return
-            if _count == _RALI_GLOBALS['LIMIT']:
+            if _count == RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _json_query = xbmc.executeJSONRPC(
@@ -382,7 +355,7 @@ def _getMovies() -> None:
             else:
                 watched = 'false'
             path = media_path(_movie['file'])
-            play = 'RunScript(' + __addonid__ + ',movieid=' + (
+            play = 'RunScript(' + ADDONID + ',movieid=' + (
                 str(_movie.get('id')) + ')')
             art = _movie['art']
             streaminfo = media_streamdetails(_movie['file'].lower(),
@@ -397,50 +370,50 @@ def _getMovies() -> None:
                     runtime = _movie['runtime']
             # Set window properties
             # autopep8:off
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.DBID'            , str(_movie.get('id','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title'           , _movie.get('title',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.OriginalTitle'   , _movie.get('originaltitle',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Year'            , str(_movie.get('year','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Genre'           , ' / '.join(_movie.get('genre','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Studio'          , ' / '.join(_movie.get('studio','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Country'         , ' / '.join(_movie.get('country','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Plot'            , _movie.get('plot',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.PlotOutline'     , _movie.get('plotoutline',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Tagline'         , _movie.get('tagline',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Runtime'         , runtime)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Rating'          , str(round(float(_movie.get('rating','0')),1)))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.UserRating'      , str(_movie.get('userrating','0')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Trailer'         , _movie.get('trailer',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.MPAA'            , _movie.get('mpaa',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Director'        , ' / '.join(_movie.get('director','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(thumb)'      , art.get('thumb',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(poster)'     , art.get('poster',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(fanart)'     , art.get('fanart',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearlogo)'  , art.get('clearlogo',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearart)'   , art.get('clearart',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(landscape)'  , art.get('landscape',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(banner)'     , art.get('banner',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(discart)'    , art.get('discart',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Resume'          , resume)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayed'   , played)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Played'          , playedasint)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Watched'         , watched)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.File'            , _movie.get('file',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Path'            , path)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Play'            , play)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.VideoCodec'      , streaminfo['videocodec'])
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.VideoResolution' , streaminfo['videoresolution'])
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.VideoAspect'     , streaminfo['videoaspect'])
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.AudioCodec'      , streaminfo['audiocodec'])
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.AudioChannels'   , str(streaminfo['audiochannels']))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.DBID'            , str(_movie.get('id','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Title'           , _movie.get('title',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.OriginalTitle'   , _movie.get('originaltitle',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Year'            , str(_movie.get('year','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Genre'           , ' / '.join(_movie.get('genre','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Studio'          , ' / '.join(_movie.get('studio','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Country'         , ' / '.join(_movie.get('country','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Plot'            , _movie.get('plot',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.PlotOutline'     , _movie.get('plotoutline',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Tagline'         , _movie.get('tagline',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Runtime'         , runtime)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Rating'          , str(round(float(_movie.get('rating','0')),1)))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.UserRating'      , str(_movie.get('userrating','0')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Trailer'         , _movie.get('trailer',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.MPAA'            , _movie.get('mpaa',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Director'        , ' / '.join(_movie.get('director','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(thumb)'      , art.get('thumb',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(poster)'     , art.get('poster',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(fanart)'     , art.get('fanart',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearlogo)'  , art.get('clearlogo',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearart)'   , art.get('clearart',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(landscape)'  , art.get('landscape',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(banner)'     , art.get('banner',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(discart)'    , art.get('discart',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Resume'          , resume)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayed'   , played)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Played'          , playedasint)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Watched'         , watched)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.File'            , _movie.get('file',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Path'            , path)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Play'            , play)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.VideoCodec'      , streaminfo['videocodec'])
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.VideoResolution' , streaminfo['videoresolution'])
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.VideoAspect'     , streaminfo['videoaspect'])
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.AudioCodec'      , streaminfo['audiocodec'])
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.AudioChannels'   , str(streaminfo['audiochannels']))
             # autopep8:on
 
-        if _count != _RALI_GLOBALS['LIMIT']:
-            while _count < _RALI_GLOBALS['LIMIT']:
+        if _count != RALI_GLOBALS['LIMIT']:
+            while _count < RALI_GLOBALS['LIMIT']:
                 _count += 1
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title', '')
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Title', '')
     else:
-        log(f'## PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+        log(f'## PLAYLIST {RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
         log(f'JSON RESULT {_json_pl_response}')
 
 
@@ -454,14 +427,14 @@ def _getMusicVideosFromPlaylist() -> None:
     _unwatched = 0
     _watched = 0
     # Request database using JSON
-    if _RALI_GLOBALS['PLAYLIST'] == '':
-        _RALI_GLOBALS['PLAYLIST'] = 'musicdb://musicvideos/titles'
+    if RALI_GLOBALS['PLAYLIST'] == '':
+        RALI_GLOBALS['PLAYLIST'] = 'musicdb://musicvideos/titles'
     if JSON_RPC_NEXUS:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-            f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
+            f'{{"directory": "{RALI_GLOBALS["PLAYLIST"]}", '
             '"media": "video", '
             '"properties": '
             '["title", '
@@ -491,7 +464,7 @@ def _getMusicVideosFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-            f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
+            f'{{"directory": "{RALI_GLOBALS["PLAYLIST"]}", '
             '"media": "video", '
             '"properties": '
             '["title", '
@@ -523,7 +496,7 @@ def _getMusicVideosFromPlaylist() -> None:
             if MONITOR.abortRequested():
                 return
             _playcount = _item['playcount']
-            if _RALI_GLOBALS['RESUME'] == 'True':
+            if RALI_GLOBALS['RESUME'] == 'True':
                 _resume = _item['resume']['position']
             else:
                 _resume = 0
@@ -532,24 +505,24 @@ def _getMusicVideosFromPlaylist() -> None:
                 _unwatched += 1
             else:
                 _watched += 1
-            if ((_RALI_GLOBALS['UNWATCHED'] == 'False' and _RALI_GLOBALS['RESUME'] == 'False')
-                or (_RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
-                    or (_RALI_GLOBALS['RESUME'] == 'True' and _resume != 0)):
+            if ((RALI_GLOBALS['UNWATCHED'] == 'False' and RALI_GLOBALS['RESUME'] == 'False')
+                or (RALI_GLOBALS['UNWATCHED'] == 'True' and _playcount == 0)
+                    or (RALI_GLOBALS['RESUME'] == 'True' and _resume != 0)):
                 _result.append(_item)
         _setVideoProperties(_total, _watched, _unwatched)
         _count = 0
-        if _RALI_GLOBALS['METHOD'] == 'Last':
+        if RALI_GLOBALS['METHOD'] == 'Last':
             _result = sorted(_result, key=itemgetter(
                 'dateadded'), reverse=True)
-        elif _RALI_GLOBALS['METHOD'] == 'Playlist':
+        elif RALI_GLOBALS['METHOD'] == 'Playlist':
             _result = sorted(_result, key=itemgetter(
-                _RALI_GLOBALS['SORTBY']), reverse=_RALI_GLOBALS['REVERSE'])
+                RALI_GLOBALS['SORTBY']), reverse=RALI_GLOBALS['REVERSE'])
         else:
             random.shuffle(_result)
         for _musicvid in _result:
             if MONITOR.abortRequested():
                 return
-            if _count == _RALI_GLOBALS['LIMIT']:
+            if _count == RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _json_query = xbmc.executeJSONRPC(
@@ -575,7 +548,7 @@ def _getMusicVideosFromPlaylist() -> None:
             else:
                 watched = 'false'
             path = media_path(_musicvid['file'])
-            play = 'RunScript(' + __addonid__ + \
+            play = 'RunScript(' + ADDONID + \
                 ',musicvideoid=' + str(_musicvid.get('id')) + ')'
             art = _musicvid['art']
             streaminfo = media_streamdetails(_musicvid['file'].lower(),
@@ -595,49 +568,49 @@ def _getMusicVideosFromPlaylist() -> None:
                     runtime = _musicvid['runtime']
             # Set window properties
             # autopep8:off
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.DBID'            , str(_musicvid.get('id')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title'           , _musicvid.get('title',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Year'            , str(_musicvid.get('year','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Genre'           , ' / '.join(_musicvid.get('genre','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Studio'          , ' / '.join(_musicvid.get('studio','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Artist'          , ' / '.join(_musicvid.get('artist','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Album'           , _musicvid.get('album',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Track'           , str(_musicvid.get('track','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Rating'          , str(_musicvid.get('rating','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.UserRating'      , str(_musicvid.get('userrating','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Plot'            , _musicvid.get('plot',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Tag'             , ' / '.join(_musicvid.get('tag','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Runtime'         , runtime)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Runtimesecs'     , runtimesecs)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Director'        , ' / '.join(_musicvid.get('director','')))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(thumb)'      , art.get('thumb',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(poster)'     , art.get('poster',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(fanart)'     , art.get('fanart',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearlogo)'  , art.get('clearlogo',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearart)'   , art.get('clearart',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(landscape)'  , art.get('landscape',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(banner)'     , art.get('banner',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(discart)'    , art.get('discart',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Resume'          , resume)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayed'   , played)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Played'          , playedasint)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Watched'         , watched)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.File'            , _musicvid.get('file',''))
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Path'            , path)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Play'            , play)
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.VideoCodec'      , streaminfo['videocodec'])
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.VideoResolution' , streaminfo['videoresolution'])
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.VideoAspect'     , streaminfo['videoaspect'])
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.AudioCodec'      , streaminfo['audiocodec'])
-            _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.AudioChannels'   , str(streaminfo['audiochannels']))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.DBID'            , str(_musicvid.get('id')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Title'           , _musicvid.get('title',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Year'            , str(_musicvid.get('year','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Genre'           , ' / '.join(_musicvid.get('genre','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Studio'          , ' / '.join(_musicvid.get('studio','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Artist'          , ' / '.join(_musicvid.get('artist','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Album'           , _musicvid.get('album',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Track'           , str(_musicvid.get('track','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Rating'          , str(_musicvid.get('rating','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.UserRating'      , str(_musicvid.get('userrating','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Plot'            , _musicvid.get('plot',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Tag'             , ' / '.join(_musicvid.get('tag','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Runtime'         , runtime)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Runtimesecs'     , runtimesecs)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Director'        , ' / '.join(_musicvid.get('director','')))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(thumb)'      , art.get('thumb',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(poster)'     , art.get('poster',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(fanart)'     , art.get('fanart',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearlogo)'  , art.get('clearlogo',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearart)'   , art.get('clearart',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(landscape)'  , art.get('landscape',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(banner)'     , art.get('banner',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(discart)'    , art.get('discart',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Resume'          , resume)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayed'   , played)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Played'          , playedasint)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Watched'         , watched)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.File'            , _musicvid.get('file',''))
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Path'            , path)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Play'            , play)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.VideoCodec'      , streaminfo['videocodec'])
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.VideoResolution' , streaminfo['videoresolution'])
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.VideoAspect'     , streaminfo['videoaspect'])
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.AudioCodec'      , streaminfo['audiocodec'])
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.AudioChannels'   , str(streaminfo['audiochannels']))
             # autopep8:on
 
-        if _count != _RALI_GLOBALS['LIMIT']:
-            while _count < _RALI_GLOBALS['LIMIT']:
+        if _count != RALI_GLOBALS['LIMIT']:
+            while _count < RALI_GLOBALS['LIMIT']:
                 _count += 1
-                _setProperty(f"{_RALI_GLOBALS['PROPERTY']}.{_count}.Title", '')
+                _setProperty(f"{RALI_GLOBALS['PROPERTY']}.{_count}.Title", '')
     else:
-        log(f'## PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+        log(f'## PLAYLIST {RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
         log(f'JSON RESULT {_json_pl_response}')
 
 
@@ -657,7 +630,7 @@ def _getEpisodesFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-            f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
+            f'{{"directory": "{RALI_GLOBALS["PLAYLIST"]}", '
             '"media": "video", '
             '"properties": '
             '["title", '
@@ -685,7 +658,7 @@ def _getEpisodesFromPlaylist() -> None:
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-            f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
+            f'{{"directory": "{RALI_GLOBALS["PLAYLIST"]}", '
             '"media": "video", '
             '"properties": '
             '["title", '
@@ -784,7 +757,7 @@ def _getEpisodesFromPlaylist() -> None:
                             _total, _watched, _unwatched, _result, _episode)
                 else:
                     log(
-                        f'## PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+                        f'## PLAYLIST {RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
                     log(f'JSON RESULT {_json_response}')
             if _file['type'] == 'episode':
                 _id = _file['tvshowid']
@@ -797,18 +770,18 @@ def _getEpisodesFromPlaylist() -> None:
         _setVideoProperties(_total, _watched, _unwatched)
         _setTvShowsProperties(_tvshows)
         _count = 0
-        if _RALI_GLOBALS['METHOD'] == 'Last':
+        if RALI_GLOBALS['METHOD'] == 'Last':
             _result = sorted(_result, key=itemgetter(
                 'dateadded'), reverse=True)
-        elif _RALI_GLOBALS['METHOD'] == 'Playlist':
+        elif RALI_GLOBALS['METHOD'] == 'Playlist':
             _result = sorted(_result, key=itemgetter(
-                _RALI_GLOBALS['SORTBY']), reverse=_RALI_GLOBALS['REVERSE'])
+                RALI_GLOBALS['SORTBY']), reverse=RALI_GLOBALS['REVERSE'])
         else:
             random.shuffle(_result)
         for _episode in _result:
             if MONITOR.abortRequested():
                 return
-            if _count == _RALI_GLOBALS['LIMIT']:
+            if _count == RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             '''
@@ -818,12 +791,12 @@ def _getEpisodesFromPlaylist() -> None:
                 _tvshow = _json_pl_response.get('result', {}).get('tvshowdetails')
             '''
             _setEpisodeProperties(_episode, _count)
-        if _count != _RALI_GLOBALS['LIMIT']:
-            while _count < _RALI_GLOBALS['LIMIT']:
+        if _count != RALI_GLOBALS['LIMIT']:
+            while _count < RALI_GLOBALS['LIMIT']:
                 _count += 1
                 _setEpisodeProperties(None, _count)
     else:
-        log(f'# 01 # PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+        log(f'# 01 # PLAYLIST {RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
         log(f'JSON RESULT {_json_pl_response}')
 
 
@@ -909,27 +882,27 @@ def _getEpisodes() -> None:
         _setVideoProperties(_total, _watched, _unwatched)
         _setTvShowsProperties(_tvshows)
         _count = 0
-        if _RALI_GLOBALS['METHOD'] == 'Last':
+        if RALI_GLOBALS['METHOD'] == 'Last':
             _result = sorted(_result, key=itemgetter(
                 'dateadded'), reverse=True)
-        elif _RALI_GLOBALS['METHOD'] == 'Playlist':
+        elif RALI_GLOBALS['METHOD'] == 'Playlist':
             _result = sorted(_result, key=itemgetter(
-                _RALI_GLOBALS['SORTBY']), reverse=_RALI_GLOBALS['REVERSE'])
+                RALI_GLOBALS['SORTBY']), reverse=RALI_GLOBALS['REVERSE'])
         else:
             random.shuffle(_result)
         for _episode in _result:
             if MONITOR.abortRequested():
                 return
-            if _count == _RALI_GLOBALS['LIMIT']:
+            if _count == RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _setEpisodeProperties(_episode, _count)
-        if _count != _RALI_GLOBALS['LIMIT']:
-            while _count < _RALI_GLOBALS['LIMIT']:
+        if _count != RALI_GLOBALS['LIMIT']:
+            while _count < RALI_GLOBALS['LIMIT']:
                 _count += 1
                 _setEpisodeProperties(None, _count)
     else:
-        log(f'## PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+        log(f'## PLAYLIST {RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
         log(f'JSON RESULT {_json_pl_response}')
 
 
@@ -949,52 +922,52 @@ def _getMusicFromPlaylist() -> None:
     _songs = 0
     _songslist = []
     # Request database using JSON
-    if _RALI_GLOBALS['PLAYLIST'] == '':
-        _RALI_GLOBALS['PLAYLIST'] = 'musicdb://songs/'
+    if RALI_GLOBALS['PLAYLIST'] == '':
+        RALI_GLOBALS['PLAYLIST'] = 'musicdb://songs/'
     # _json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s", "media": "music", "properties": ["title", "description", "albumlabel", "artist", "genre", "year", "thumbnail", "fanart", "rating", "userrating", "playcount", "dateadded"]}, "id": 1}' %(PLAYLIST))
-    if _RALI_GLOBALS['METHOD'] == 'Random':
+    if RALI_GLOBALS['METHOD'] == 'Random':
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-            f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
+            f'{{"directory": "{RALI_GLOBALS["PLAYLIST"]}", '
             '"media": "music", '
             '"properties": ["dateadded"], '
             '"sort": {"method": "random"}}, '
             '"id": 1}')
-    elif _RALI_GLOBALS['METHOD'] == 'Last':
+    elif RALI_GLOBALS['METHOD'] == 'Last':
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-            f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
+            f'{{"directory": "{RALI_GLOBALS["PLAYLIST"]}", '
             '"media": "music", '
             '"properties": ["dateadded"], '
             '"sort": '
             '{"order": "descending", '
             '"method": "dateadded"}}, '
             '"id": 1}')
-    elif _RALI_GLOBALS['METHOD'] == 'Playlist':
+    elif RALI_GLOBALS['METHOD'] == 'Playlist':
         order = 'ascending'
-        if _RALI_GLOBALS['REVERSE']:
+        if RALI_GLOBALS['REVERSE']:
             order = 'descending'
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-            f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
+            f'{{"directory": "{RALI_GLOBALS["PLAYLIST"]}", '
             '"media": "music", '
             '"properties": ["dateadded"], '
             '"sort": '
             f'{{"order": "{order}", '
-            f'"method": "{_RALI_GLOBALS["SORTBY"]}"}}}}, '
+            f'"method": "{RALI_GLOBALS["SORTBY"]}"}}}}, '
             '"id": 1}')
     else:
         _json_query = xbmc.executeJSONRPC(
             '{"jsonrpc": "2.0", '
             '"method": "Files.GetDirectory", '
             '"params": '
-            f'{{"directory": "{_RALI_GLOBALS["PLAYLIST"]}", '
+            f'{{"directory": "{RALI_GLOBALS["PLAYLIST"]}", '
             '"media": "music", '
             '"properties": ["dateadded"]}, '
             '"id": 1}')
@@ -1038,7 +1011,7 @@ def _getMusicFromPlaylist() -> None:
                 _albumsid.append(_albumid)
             '''
         _setMusicProperties(_artists, len(_files), _songs)
-        if _RALI_GLOBALS['METHOD'] == 'Last':
+        if RALI_GLOBALS['METHOD'] == 'Last':
             _albumslist = sorted(
                 _albumslist, key=itemgetter('dateadded'), reverse=True)
         else:
@@ -1047,7 +1020,7 @@ def _getMusicFromPlaylist() -> None:
         for _album in _albumslist:
             if MONITOR.abortRequested():
                 return
-            if _count == _RALI_GLOBALS['LIMIT']:
+            if _count == RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _albumid = _album['id']
@@ -1101,8 +1074,8 @@ def _getMusicFromPlaylist() -> None:
             _album: dict = _json_pl_response.get(
                 'result', {}).get('albumdetails')
             _setAlbumPROPERTIES(_album, _count)
-        if _count <= _RALI_GLOBALS['LIMIT']:
-            while _count < _RALI_GLOBALS['LIMIT']:
+        if _count <= RALI_GLOBALS['LIMIT']:
+            while _count < RALI_GLOBALS['LIMIT']:
                 _count += 1
                 _setAlbumPROPERTIES(None, _count)
     elif _files and _files[0].get('type') == 'song':
@@ -1170,7 +1143,7 @@ def _getMusicFromPlaylist() -> None:
                     _albums += 1
                     _albumslist.append(_result['albumid'])
         _setMusicProperties(_artists, _albums, len(_files))
-        if _RALI_GLOBALS['METHOD'] == 'Last':
+        if RALI_GLOBALS['METHOD'] == 'Last':
             _songslist = sorted(_songslist, key=itemgetter(
                 'dateadded'), reverse=True)
         else:
@@ -1179,16 +1152,16 @@ def _getMusicFromPlaylist() -> None:
         for _song in _songslist:
             if MONITOR.abortRequested():
                 return
-            if _count == _RALI_GLOBALS['LIMIT']:
+            if _count == RALI_GLOBALS['LIMIT']:
                 break
             _count += 1
             _setSongPROPERTIES(_song, _count)
-        if _count <= _RALI_GLOBALS['LIMIT']:
-            while _count < _RALI_GLOBALS['LIMIT']:
+        if _count <= RALI_GLOBALS['LIMIT']:
+            while _count < RALI_GLOBALS['LIMIT']:
                 _count += 1
                 _setSongPROPERTIES(None, _count)
     else:
-        log(f'## PLAYLIST {_RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
+        log(f'## PLAYLIST {RALI_GLOBALS["PLAYLIST"]} COULD NOT BE LOADED ##')
         log(f'JSON RESULT {_json_pl_response}')
 
 
@@ -1199,14 +1172,14 @@ def _clearProperties() -> None:
         None
     """
     # Reset window Properties
-    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Loaded')
-    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Count')
-    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Watched')
-    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Unwatched')
-    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Artists')
-    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Albums')
-    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Songs')
-    WINDOW.clearProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Type')
+    WINDOW.clearProperty(f'{RALI_GLOBALS["PROPERTY"]}.Loaded')
+    WINDOW.clearProperty(f'{RALI_GLOBALS["PROPERTY"]}.Count')
+    WINDOW.clearProperty(f'{RALI_GLOBALS["PROPERTY"]}.Watched')
+    WINDOW.clearProperty(f'{RALI_GLOBALS["PROPERTY"]}.Unwatched')
+    WINDOW.clearProperty(f'{RALI_GLOBALS["PROPERTY"]}.Artists')
+    WINDOW.clearProperty(f'{RALI_GLOBALS["PROPERTY"]}.Albums')
+    WINDOW.clearProperty(f'{RALI_GLOBALS["PROPERTY"]}.Songs')
+    WINDOW.clearProperty(f'{RALI_GLOBALS["PROPERTY"]}.Type')
 
 
 def _setMusicProperties(_artists: int, _albums: int, _songs: int) -> None:
@@ -1218,10 +1191,10 @@ def _setMusicProperties(_artists: int, _albums: int, _songs: int) -> None:
         _songs (int): number of songs
     """
     # Set window Properties
-    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Artists', str(_artists))
-    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Albums', str(_albums))
-    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Songs', str(_songs))
-    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Type', _RALI_GLOBALS['TYPE'])
+    _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.Artists', str(_artists))
+    _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.Albums', str(_albums))
+    _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.Songs', str(_songs))
+    _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.Type', RALI_GLOBALS['TYPE'])
 
 
 def _setVideoProperties(_total: int, _watched: int, _unwatched: int) -> None:
@@ -1233,10 +1206,10 @@ def _setVideoProperties(_total: int, _watched: int, _unwatched: int) -> None:
         _unwatched (int): Subtotal items unwatched
     """
     # Set window Properties
-    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Count', str(_total))
-    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Watched', str(_watched))
-    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Unwatched', str(_unwatched))
-    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Type', _RALI_GLOBALS['TYPE'])
+    _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.Count', str(_total))
+    _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.Watched', str(_watched))
+    _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.Unwatched', str(_unwatched))
+    _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.Type', RALI_GLOBALS['TYPE'])
 
 
 def _setTvShowsProperties(_tvshows) -> None:
@@ -1246,7 +1219,7 @@ def _setTvShowsProperties(_tvshows) -> None:
         _tvshows(_type_): _description_
     """
     # Set window Properties
-    _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.TvShows', str(_tvshows))
+    _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.TvShows', str(_tvshows))
 
 
 def _setEpisodeProperties(_episode, _count) -> None:
@@ -1286,54 +1259,54 @@ def _setEpisodeProperties(_episode, _count) -> None:
             playedasint = '0'
         art = _episode['art']
         path = media_path(_episode['file'])
-        play = 'RunScript(' + __addonid__ + ',episodeid=' + \
+        play = 'RunScript(' + ADDONID + ',episodeid=' + \
             str(_episode.get('id')) + ')'
         runtime = str(int((_episode['runtime'] / 60) + 0.5))
         streaminfo = media_streamdetails(_episode['file'].lower(),
                                          _episode['streamdetails'])
         # autopep8:off
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.DBID'                  , str(_episode.get('id')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title'                 , _episode.get('title',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Episode'               , episode)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.EpisodeNo'             , episodeno)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Season'                , season)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Plot'                  , _episode.get('plot',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.TVshowTitle'           , _episode.get('showtitle',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Rating'                , rating)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.UserRating'            , userrating)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(thumb)'            , art.get('thumb',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.fanart)'    , art.get('tvshow.fanart',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.poster)'    , art.get('tvshow.poster',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.banner)'    , art.get('tvshow.banner',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.clearlogo)' , art.get('tvshow.clearlogo',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.clearart)'  , art.get('tvshow.clearart',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.landscape)' , art.get('tvshow.landscape',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(fanart)'           , art.get('tvshow.fanart',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(poster)'           , art.get('tvshow.poster',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(banner)'           , art.get('tvshow.banner',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearlogo)'        , art.get('tvshow.clearlogo',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearart)'         , art.get('tvshow.clearart',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(landscape)'        , art.get('tvshow.landscape',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Resume'                , resume)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Watched'               , _episode.get('watched',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Runtime'               , runtime)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Premiered'             , _episode.get('firstaired',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayed'         , played)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Played'                , playedasint)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.File'                  , _episode.get('file',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.MPAA'                  , _episode.get('mpaa',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Studio'                , ' / '.join(_episode.get('studio','')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Path'                  , path)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Play'                  , play)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.VideoCodec'            , streaminfo['videocodec'])
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.VideoResolution'       , streaminfo['videoresolution'])
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.VideoAspect'           , streaminfo['videoaspect'])
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.AudioCodec'            , streaminfo['audiocodec'])
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.AudioChannels'         , str(streaminfo['audiochannels']))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.DBID'                  , str(_episode.get('id')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Title'                 , _episode.get('title',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Episode'               , episode)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.EpisodeNo'             , episodeno)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Season'                , season)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Plot'                  , _episode.get('plot',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.TVshowTitle'           , _episode.get('showtitle',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Rating'                , rating)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.UserRating'            , userrating)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(thumb)'            , art.get('thumb',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.fanart)'    , art.get('tvshow.fanart',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.poster)'    , art.get('tvshow.poster',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.banner)'    , art.get('tvshow.banner',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.clearlogo)' , art.get('tvshow.clearlogo',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.clearart)'  , art.get('tvshow.clearart',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(tvshow.landscape)' , art.get('tvshow.landscape',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(fanart)'           , art.get('tvshow.fanart',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(poster)'           , art.get('tvshow.poster',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(banner)'           , art.get('tvshow.banner',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearlogo)'        , art.get('tvshow.clearlogo',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(clearart)'         , art.get('tvshow.clearart',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(landscape)'        , art.get('tvshow.landscape',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Resume'                , resume)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Watched'               , _episode.get('watched',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Runtime'               , runtime)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Premiered'             , _episode.get('firstaired',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayed'         , played)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Played'                , playedasint)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.File'                  , _episode.get('file',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.MPAA'                  , _episode.get('mpaa',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Studio'                , ' / '.join(_episode.get('studio','')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Path'                  , path)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Play'                  , play)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.VideoCodec'            , streaminfo['videocodec'])
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.VideoResolution'       , streaminfo['videoresolution'])
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.VideoAspect'           , streaminfo['videoaspect'])
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.AudioCodec'            , streaminfo['audiocodec'])
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.AudioChannels'         , str(streaminfo['audiochannels']))
         # autopep8:on
 
     else:
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title', '')
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Title', '')
 
 
 def _setAlbumPROPERTIES(_album: dict, _count: int) -> None:
@@ -1348,28 +1321,28 @@ def _setAlbumPROPERTIES(_album: dict, _count: int) -> None:
             _userrating = ''
         if _rating == '48':
             _rating = ''
-        play = 'RunScript(' + __addonid__ + ',albumid=' + \
+        play = 'RunScript(' + ADDONID + ',albumid=' + \
             str(_album.get('albumid')) + ')'
         path = 'musicdb://albums/' + str(_album.get('albumid')) + '/'
         # autopep8:off
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title'       , _album.get('title',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Artist'      , ' / '.join(_album.get('artist','')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Genre'       , ' / '.join(_album.get('genre','')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Theme'       , ' / '.join(_album.get('theme','')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Mood'        , ' / '.join(_album.get('mood','')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Style'       , ' / '.join(_album.get('style','')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Type'        , _album.get('type',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Year'        , str(_album.get('year','')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.RecordLabel' , _album.get('albumlabel',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Description' , _album.get('description',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Rating'      , _rating)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.UserRating'  , _userrating)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(thumb)'  , _album.get('thumbnail',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(fanart)' , _album.get('fanart',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Play'        , play)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.LibraryPath' , path)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Title'       , _album.get('title',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Artist'      , ' / '.join(_album.get('artist','')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Genre'       , ' / '.join(_album.get('genre','')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Theme'       , ' / '.join(_album.get('theme','')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Mood'        , ' / '.join(_album.get('mood','')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Style'       , ' / '.join(_album.get('style','')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Type'        , _album.get('type',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Year'        , str(_album.get('year','')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.RecordLabel' , _album.get('albumlabel',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Description' , _album.get('description',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Rating'      , _rating)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.UserRating'  , _userrating)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(thumb)'  , _album.get('thumbnail',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(fanart)' , _album.get('fanart',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Play'        , play)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.LibraryPath' , path)
     else:
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title'       , '')
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Title'       , '')
     # autopep8:on
 
 
@@ -1385,23 +1358,23 @@ def _setSongPROPERTIES(_song: dict, _count: int) -> None:
             _userrating = ''
         if _rating == '48':
             _rating = ''
-        play = 'RunScript(' + __addonid__ + ',songid=' + \
+        play = 'RunScript(' + ADDONID + ',songid=' + \
             str(_song.get('songid')) + ')'
         path = 'musicdb://songs/' + str(_song.get('songid')) + '/'
         # autopep8:off
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title'       , _song.get('title',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Artist'      , ' / '.join(_song.get('artist','')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Genre'       , ' / '.join(_song.get('genre','')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Year'        , str(_song.get('year','')))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Description' , _song.get('comment',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Rating'      , _rating)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.UserRating'  , _userrating)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(thumb)'  , _song.get('thumbnail',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Art(fanart)' , _song.get('fanart',''))
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Play'        , play)
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.LibraryPath' , path)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Title'       , _song.get('title',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Artist'      , ' / '.join(_song.get('artist','')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Genre'       , ' / '.join(_song.get('genre','')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Year'        , str(_song.get('year','')))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Description' , _song.get('comment',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Rating'      , _rating)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.UserRating'  , _userrating)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(thumb)'  , _song.get('thumbnail',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(fanart)' , _song.get('fanart',''))
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Play'        , play)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.LibraryPath' , path)
     else:
-        _setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.{_count}.Title'       , '')
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Title'       , '')
     # autopep8:on
 
 
@@ -1467,29 +1440,29 @@ def _parse_argv() -> None:
         for arg in sys.argv:
             param = str(arg)
             if 'limit=' in param:
-                _RALI_GLOBALS['LIMIT'] = int(param.replace('limit=', ''))
+                RALI_GLOBALS['LIMIT'] = int(param.replace('limit=', ''))
             elif 'menu=' in param:
-                _RALI_GLOBALS['MENU'] = param.replace('menu=', '')
+                RALI_GLOBALS['MENU'] = param.replace('menu=', '')
             elif 'method=' in param:
-                _RALI_GLOBALS['METHOD'] = param.replace('method=', '')
+                RALI_GLOBALS['METHOD'] = param.replace('method=', '')
             elif 'playlist=' in param:
-                _RALI_GLOBALS['PLAYLIST'] = param.replace('playlist=', '')
-                _RALI_GLOBALS['PLAYLIST'] = _RALI_GLOBALS['PLAYLIST'].replace(
+                RALI_GLOBALS['PLAYLIST'] = param.replace('playlist=', '')
+                RALI_GLOBALS['PLAYLIST'] = RALI_GLOBALS['PLAYLIST'].replace(
                     '"', '')
             elif 'property=' in param:
-                _RALI_GLOBALS['PROPERTY'] = param.replace('property=', '')
+                RALI_GLOBALS['PROPERTY'] = param.replace('property=', '')
             elif 'type=' in param:
-                _RALI_GLOBALS['TYPE'] = param.replace('type=', '')
+                RALI_GLOBALS['TYPE'] = param.replace('type=', '')
             elif 'unwatched=' in param:
-                _RALI_GLOBALS['UNWATCHED'] = param.replace('unwatched=', '')
-                if _RALI_GLOBALS['UNWATCHED'] == '':
-                    _RALI_GLOBALS['UNWATCHED'] = 'False'
+                RALI_GLOBALS['UNWATCHED'] = param.replace('unwatched=', '')
+                if RALI_GLOBALS['UNWATCHED'] == '':
+                    RALI_GLOBALS['UNWATCHED'] = 'False'
             elif 'resume=' in param:
-                _RALI_GLOBALS['RESUME'] = param.replace('resume=', '')
-        if _RALI_GLOBALS['PLAYLIST'] != '' and xbmcvfs.exists(xbmcvfs.translatePath(_RALI_GLOBALS['PLAYLIST'])):
+                RALI_GLOBALS['RESUME'] = param.replace('resume=', '')
+        if RALI_GLOBALS['PLAYLIST'] != '' and xbmcvfs.exists(xbmcvfs.translatePath(RALI_GLOBALS['PLAYLIST'])):
             _getPlaylistType()
-        if _RALI_GLOBALS['PROPERTY'] == '':
-            _RALI_GLOBALS['PROPERTY'] = f'Playlist{_RALI_GLOBALS["METHOD"]}{_RALI_GLOBALS["TYPE"]}{_RALI_GLOBALS["MENU"]}'
+        if RALI_GLOBALS['PROPERTY'] == '':
+            RALI_GLOBALS['PROPERTY'] = f'Playlist{RALI_GLOBALS["METHOD"]}{RALI_GLOBALS["TYPE"]}{RALI_GLOBALS["MENU"]}'
 
 
 def media_streamdetails(filename: str, streamdetails: dict) -> dict:
@@ -1586,29 +1559,33 @@ def media_path(raw_path: str) -> str:
     return raw_pathlist[0]
 
 
-# Parse argv for any preferences
-_parse_argv()
-# Clear Properties for playlist PROPERTY from _parse_argv()
-_clearProperties()
-# Get movies and fill Properties
-if _RALI_GLOBALS['TYPE'] == 'Movie':
-    _getMovies()
-elif _RALI_GLOBALS['TYPE'] == 'Episode':
-    if _RALI_GLOBALS['PLAYLIST'] == '':
-        _getEpisodes()
+def run():
+    """Main entry point for the addon
+    """
+
+    # Parse argv for any preferences
+    _parse_argv()
+    # Clear Properties for playlist PROPERTY from _parse_argv()
+    _clearProperties()
+    # Get movies and fill Properties
+    if RALI_GLOBALS['TYPE'] == 'Movie':
+        _getMovies()
+    elif RALI_GLOBALS['TYPE'] == 'Episode':
+        if RALI_GLOBALS['PLAYLIST'] == '':
+            _getEpisodes()
+        else:
+            _getEpisodesFromPlaylist()
+    elif RALI_GLOBALS['TYPE'] == 'Music':
+        _getMusicFromPlaylist()
+    elif RALI_GLOBALS['TYPE'] == 'MusicVideo':
+        _getMusicVideosFromPlaylist()
+    if RALI_GLOBALS['TYPE'] != 'Invalid':
+        # skin can check this to verify properties available
+        WINDOW.setProperty(f'{RALI_GLOBALS["PROPERTY"]}.Loaded', 'true')
+        log(f'Loading Playlist{RALI_GLOBALS["METHOD"]}{RALI_GLOBALS["TYPE"]}{RALI_GLOBALS["MENU"]} '
+            f'started at {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(START_TIME))} '
+            f'and took {_timeTook(START_TIME)} (Nexus+ {JSON_RPC_NEXUS})')
     else:
-        _getEpisodesFromPlaylist()
-elif _RALI_GLOBALS['TYPE'] == 'Music':
-    _getMusicFromPlaylist()
-elif _RALI_GLOBALS['TYPE'] == 'MusicVideo':
-    _getMusicVideosFromPlaylist()
-if _RALI_GLOBALS['TYPE'] != 'Invalid':
-    # skin can check this to verify properties available
-    WINDOW.setProperty(f'{_RALI_GLOBALS["PROPERTY"]}.Loaded', 'true')
-    log(f'Loading Playlist{_RALI_GLOBALS["METHOD"]}{_RALI_GLOBALS["TYPE"]}{_RALI_GLOBALS["MENU"]} '
-        f'started at {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(START_TIME))} '
-        f'and took {_timeTook(START_TIME)} (Nexus {JSON_RPC_NEXUS})')
-else:
-    log(
-        f'Unable to process the {_RALI_GLOBALS["METHOD"]}{_RALI_GLOBALS["MENU"]} playlist')
-del WINDOW, MONITOR, __addon__
+        log(
+            f'Unable to process the {RALI_GLOBALS["METHOD"]}{RALI_GLOBALS["MENU"]} playlist')
+

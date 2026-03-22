@@ -5,8 +5,8 @@
         <import addon="xbmc.json" version="12.0.0"/>
         <import addon="script.module.simplejson" version="3.17.0+matrix.2"/>
     </requires>
-    <extension point="xbmc.python.library" library="randomandlastitems.py" />
-	<extension point="xbmc.python.script" library="randomandlastitems.py">
+    <extension point="xbmc.python.library" library="lib"/>
+	<extension point="xbmc.python.script" library="default.py">
 		<provides>executable</provides>
 	</extension>
     <extension point="xbmc.addon.metadata">
