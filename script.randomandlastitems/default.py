@@ -18,5 +18,5 @@ Typical usage example:
 """
 
 if __name__ == "__main__":
-    from lib import randomandlastitems as rali
+    from resources.lib import randomandlastitems as rali
     rali.run()

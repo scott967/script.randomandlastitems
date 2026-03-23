@@ -8,7 +8,7 @@
     <extension point="xbmc.python.script" library="default.py">
 		<provides>executable</provides>
 	</extension>
-    <extension point="xbmc.python.library" library="lib"/>
+    <extension point="xbmc.python.library" library="resources/lib"/>
     <extension point="xbmc.addon.metadata">
         <summary lang="en">Random And Last Items script</summary>
         <description lang="en">
@@ -27,4 +27,11 @@ Il peut optionnellement gerer les playlistes pour filtrer les resultats.
         <forum>http://forum.xbmc.org/showthread.php?tid=122448</forum>
         <email></email>
     </extension>
+    <assets>
+        <icon>resources/icon.png</icon>
+        <fanart>resources/fanart.jpg</fanart>
+    </assets>
+    <news>
+        Ver 3.06 refactored per Kodi structure
+    </news>
 </addon>
