@@ -25,12 +25,12 @@ Il peut optionnellement gerer les playlistes pour filtrer les resultats.
         <source>https://github.com/scott967/script.randomandlastitems</source>
         <forum>http://forum.xbmc.org/showthread.php?tid=122448</forum>
         <email></email>
-    </extension>
-    <assets>
-        <icon>resources/icon.png</icon>
-        <fanart>resources/fanart.jpg</fanart>
-    </assets>
-    <news>
+        <assets>
+            <icon>resources/icon.png</icon>
+            <fanart>resources/fanart.jpg</fanart>
+        </assets>
+        <news>
         Ver 3.06 refactored per Kodi structure
-    </news>
+        </news>
+    </extension>
 </addon>
