@@ -30,7 +30,7 @@ from xml.dom.minidom import parse
 
 import xbmc
 import xbmcvfs
-from lib import *
+from lib import ADDONNAME, ADDONID, RALI_GLOBALS, JSON_RPC_NEXUS, MONITOR, WINDOW, START_TIME
 
 def log(txt: str) -> None:
     """utility writes info to Kodi debug level log
@@ -1588,4 +1588,3 @@ def run():
     else:
         log(
             f'Unable to process the {RALI_GLOBALS["METHOD"]}{RALI_GLOBALS["MENU"]} playlist')
-

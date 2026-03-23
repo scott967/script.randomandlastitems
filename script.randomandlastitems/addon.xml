@@ -8,12 +8,11 @@
     <extension point="xbmc.python.script" library="default.py">
 		<provides>executable</provides>
 	</extension>
-    <extension point="xbmc.python.library" library="resources/lib"/>
     <extension point="xbmc.addon.metadata">
         <summary lang="en">Random And Last Items script</summary>
         <description lang="en">
 Script to get Random or Last added movies, episodes, albums or music videos from the database.
-Can optionnaly handle playlist to filter results.
+Can optionally handle playlist to filter results.
         </description>
         <summary lang="fr">Random And Last Items script</summary>
         <description lang="fr">
