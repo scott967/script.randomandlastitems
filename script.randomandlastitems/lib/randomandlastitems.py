@@ -25,12 +25,15 @@ import sys
 import time
 import urllib.request
 from operator import itemgetter
+from pathlib import Path
 from typing import List, Tuple
 from xml.dom.minidom import parse
 
 import xbmc
 import xbmcvfs
-from lib import ADDONNAME, ADDONID, RALI_GLOBALS, JSON_RPC_NEXUS, MONITOR, WINDOW, START_TIME
+from lib import (ADDONID, ADDONNAME, JSON_RPC_NEXUS, MONITOR, RALI_GLOBALS,
+                 START_TIME, WINDOW)
+
 
 def log(txt: str) -> None:
     """utility writes info to Kodi debug level log
@@ -214,7 +217,8 @@ def _getMovies() -> None:
         for _item in _files:
             if MONITOR.abortRequested():
                 return
-            if _item['filetype'] == 'directory':
+            if (_item['filetype'] == 'directory') and Path(_item["file"]).is_dir():
+                # protect for file version returned as directory
                 if JSON_RPC_NEXUS:
                     _json_query = xbmc.executeJSONRPC(
                         '{"jsonrpc": "2.0", '
