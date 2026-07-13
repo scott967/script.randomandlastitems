@@ -1,3 +1,6 @@
+v3.0.7
+- refactored to remove code from default.py entry point module
+
 v3.0.5
 - additonal refactoring
 
