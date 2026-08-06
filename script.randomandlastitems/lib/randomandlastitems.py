@@ -400,6 +400,7 @@ def _getMovies() -> None:
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(discart)'    , art.get('discart',''))
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Resume'          , resume)
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayed'   , played)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayedAsInt', playedasint)
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Played'          , playedasint)
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Watched'         , watched)
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.File'            , _movie.get('file',''))
@@ -597,6 +598,7 @@ def _getMusicVideosFromPlaylist() -> None:
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Art(discart)'    , art.get('discart',''))
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Resume'          , resume)
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayed'   , played)
+            _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayedAsInt', playedasint)
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Played'          , playedasint)
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Watched'         , watched)
             _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.File'            , _musicvid.get('file',''))
@@ -1245,8 +1247,8 @@ def _setEpisodeProperties(_episode, _count) -> None:
         if 'episodedetails' in _json_query['result']:
             item = _json_query['result']['episodedetails']
             _episode['streamdetails'] = item['streamdetails']
-        episode = ('%.2d' % float(_episode['episode']))
-        season = '%.2d' % float(_episode['season'])
+        episode = f"{int(float(_episode['episode'])):02d}"
+        season = f"{int(float(_episode['season'])):02d}"
         episodeno = f's{season}e{episode}'
         rating = str(round(float(_episode['rating']), 1))
         if 'userrating' in _episode:
@@ -1296,6 +1298,7 @@ def _setEpisodeProperties(_episode, _count) -> None:
         _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Runtime'               , runtime)
         _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Premiered'             , _episode.get('firstaired',''))
         _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayed'         , played)
+        _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.PercentPlayedAsInt'    , playedasint)
         _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.Played'                , playedasint)
         _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.File'                  , _episode.get('file',''))
         _setProperty(f'{RALI_GLOBALS["PROPERTY"]}.{_count}.MPAA'                  , _episode.get('mpaa',''))
@@ -1592,3 +1595,5 @@ def run():
     else:
         log(
             f'Unable to process the {RALI_GLOBALS["METHOD"]}{RALI_GLOBALS["MENU"]} playlist')
+    if MONITOR.abortRequested():
+        log(f'Aborted by user at {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))}')
