@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.randomandlastitems" name="Random and Last items script" version="3.0.7" provider-name="MikeBZH44, Martijn, `Black">
+<addon id="script.randomandlastitems" name="Random and Last items script" version="3.0.8" provider-name="MikeBZH44, Martijn, `Black">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="xbmc.json" version="12.0.0"/>
@@ -30,7 +30,7 @@ Il peut optionnellement gerer les playlistes pour filtrer les resultats.
             <fanart>resources/fanart.jpg</fanart>
         </assets>
         <news>
-        Ver 3.07 refactored per Kodi structure
+        Ver 3.08 add window property for percent played without the "%" appended to the value.
         </news>
     </extension>
 </addon>
